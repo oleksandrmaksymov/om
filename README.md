@@ -25,7 +25,7 @@ src/
 ├── core/                ← GSAP-плагины, Lenis, загрузка скриптов, жизненный цикл
 ├── global/              ← nav (вне Barba-контейнера): меню, heading-link, текущая ссылка, Webflow
 ├── modules/             ← по файлу на эффект: axion, flip, loader, split-text, курсоры, сетка…
-└── transitions/cube.js  ← переход между страницами
+└── transitions/crossfade.js ← переход между страницами (Osmo Cross Fade)
 ```
 
 Каждый модуль: `initX(scope)` → возвращает функцию `cleanup`, которая всё останавливает

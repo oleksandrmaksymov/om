@@ -12,16 +12,24 @@ import { resetWebflow } from './global/webflow.js';
 import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { initClock } from './modules/clock.js';
 import { initPageContent, initPageLayout } from './pages.js';
-import { runPageLeaveAnimation } from './transitions/cube.js';
+import { runPageLeaveAnimation, runPageEnterAnimation } from './transitions/crossfade.js';
 
 let destroyPrevPage = null;
+
+/* New page back into normal flow, scroll to top */
+function resetPage(container) {
+  gsap.set(container, { clearProps: 'position,top,left,right' });
+  window.scrollTo(0, 0);
+  lenis.scrollTo(0, { immediate: true, force: true });
+  lenis.resize();
+}
 
 document.addEventListener('DOMContentLoaded', function() {
   barba.init({
     preventRunning: true,
     timeout: 7000,
     transitions: [{
-      name: 'cube',
+      name: 'crossfade',
       sync: true,
 
       once(data) {
@@ -45,17 +53,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
       beforeEnter(data) {
         if (!destroyPrevPage) destroyPrevPage = detachPage();
+        /* New page sits on top of the current one while they cross-fade */
         gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
         updateCurrentLinks();
         initPageContent(data.next.container, false);
       },
 
       leave(data) {
-        return runPageLeaveAnimation(data.current.container, data.next.container);
+        return runPageLeaveAnimation(data.current.container);
       },
 
-      enter() {
-        return Promise.resolve();
+      enter(data) {
+        return runPageEnterAnimation(data.next.container, resetPage);
       },
 
       afterLeave() {
@@ -66,10 +75,8 @@ document.addEventListener('DOMContentLoaded', function() {
       },
 
       afterEnter(data) {
-        lenis.scrollTo(0, { immediate: true, force: true });
         resetWebflow(data);
         initPageLayout(data.next.container);
-        lenis.resize();
         lenis.start();
         ScrollTrigger.refresh();
       }
