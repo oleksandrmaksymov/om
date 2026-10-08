@@ -395,6 +395,7 @@ export function runAxionCase(container) {
       renderer.render(scene, camera);
     }
 
+    animate();
 
   return function() {
     cancelAnimationFrame(rafId);
