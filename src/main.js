@@ -45,10 +45,13 @@ document.addEventListener('DOMContentLoaded', function() {
         initPageLayout(data.next.container);
       },
 
+      /* If the mobile menu is open, wait until its curtain has fully closed,
+         then start the page transition */
       beforeLeave() {
-        closeMobileMenu();
-        lenis.stop();
-        if (!destroyPrevPage) destroyPrevPage = detachPage();
+        return closeMobileMenu().then(function() {
+          lenis.stop();
+          if (!destroyPrevPage) destroyPrevPage = detachPage();
+        });
       },
 
       beforeEnter(data) {
