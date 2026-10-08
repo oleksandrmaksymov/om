@@ -1,24 +1,7 @@
-# om — скрипты сайта oleksandrmaskymov.webflow.io
-
 Весь JS сайта. Пишется модулями в `src/`, GitHub Actions собирает их в `dist/app.js`,
 сайт грузит его через jsDelivr.
 
-## Подключение в Webflow (Site Settings → Footer)
 
-```html
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.15/dist/gsap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.15/dist/Flip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.15/dist/ScrollTrigger.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.15/dist/SplitText.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/gsap@3.15/dist/CustomEase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/lenis@1.3.26/dist/lenis.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@barba/core@2/dist/barba.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/oleksandrmaksymov/om@main/dist/app.js"></script>
-```
-
-## Структура
-
-```
 src/
 ├── main.js              ← точка входа: Barba и порядок запуска
 ├── pages.js             ← какие модули запускаются на странице
@@ -28,10 +11,6 @@ src/
 └── transitions/crossfade.js ← переход между страницами (Osmo Cross Fade)
 ```
 
-Каждый модуль: `initX(scope)` → возвращает функцию `cleanup`, которая всё останавливает
-при уходе со страницы.
-
-## Как править
 
 1. Открыть нужный файл в `src/`, нажать ✏️, изменить, Commit.
 2. Через ~1 минуту GitHub Actions пересоберёт `dist/app.js` и сбросит кэш jsDelivr.
