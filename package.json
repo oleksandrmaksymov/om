@@ -1,0 +1,10 @@
+{
+  "name": "om",
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --format=iife --target=es2018 --minify --sourcemap --outfile=dist/app.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
