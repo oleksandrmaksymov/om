@@ -2,7 +2,7 @@ import { lenis } from '../core/setup.js';
 
 /* ———— Mobile burger menu ———— */
 /* Must match the .nav-bg clip-path transition in Site Head (0.7s) */
-const MENU_CLOSE_DURATION = 700;
+const MENU_CLOSE_DURATION = 400;
 
 /* Returns a promise that resolves once the menu has fully closed
    (resolves immediately if it wasn't open) */
