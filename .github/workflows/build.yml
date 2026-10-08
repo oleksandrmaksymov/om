@@ -34,7 +34,16 @@ jobs:
           git diff --cached --quiet || git commit -m "build: update dist [skip ci]"
           git push
 
-      - name: Purge jsDelivr cache
+      - name: Tag version
         run: |
-          curl -sf "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/dist/app.js" || true
-          curl -sf "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/dist/app.js.map" || true
+          TAG="v${{ github.run_number }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+          {
+            echo "## $TAG"
+            echo ""
+            echo "Webflow → Site Settings → Footer:"
+            echo '```html'
+            echo "<script src=\"https://cdn.jsdelivr.net/gh/${{ github.repository }}@$TAG/dist/app.js\"></script>"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
