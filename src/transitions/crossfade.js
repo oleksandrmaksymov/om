@@ -17,7 +17,7 @@ export function runPageLeaveAnimation(current) {
   tl.to(current, {
     autoAlpha: 0,
     ease: 'power1.in',
-    duration: 0.5,
+    duration: 0.4,
   }, 0);
 
   return tl;
@@ -35,7 +35,7 @@ export function runPageEnterAnimation(next, onReady) {
     }, {
       autoAlpha: 1,
       ease: 'power1.inOut',
-      duration: 0.75,
+      duration: 0.65,
     }, 0);
   }
 

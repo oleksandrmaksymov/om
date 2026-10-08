@@ -1,5 +1,5 @@
 /* ———— SplitText Masked Text Reveal ———— */
-export const SPLIT_DELAY = 0.15;
+export const SPLIT_DELAY = 0.25;
 export const SPLIT_LINES = { duration: 0.8, yPercent: 110, stagger: 0.08, ease: 'expo.out' };
 
 export function initMaskTextScrollReveal(scope) {
