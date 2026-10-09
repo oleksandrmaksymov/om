@@ -4,6 +4,11 @@
    ====================================================== */
 const reducedMotionMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+/* Пауза перед появлением новой страницы (сек)
+   0   — наложение (старая гаснет, новая проявляется одновременно)
+   0.3 — новая появляется сразу после того, как старая полностью исчезла */
+const ENTER_DELAY = 0.5;
+
 /* Current page fades out (runs in parallel with enter — sync mode) */
 export function runPageLeaveAnimation(current) {
   const tl = gsap.timeline({
@@ -36,7 +41,7 @@ export function runPageEnterAnimation(next, onReady) {
       autoAlpha: 1,
       ease: 'power1.inOut',
       duration: 0.5,
-    }, 0);
+    }, ENTER_DELAY);
   }
 
   tl.add('pageReady');
