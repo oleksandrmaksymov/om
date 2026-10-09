@@ -2,7 +2,8 @@
 export const SPLIT_DELAY = 0.25;
 export const SPLIT_LINES = { duration: 0.8, yPercent: 110, stagger: 0.08, ease: 'expo.out' };
 
-export function initMaskTextScrollReveal(scope) {
+/* extraDelay: extra wait (sec) for text already on screen — e.g. while the new page fades in */
+export function initMaskTextScrollReveal(scope, extraDelay = 0) {
   const splits = [];
   scope.querySelectorAll('[data-split]').forEach(el => {
 
@@ -20,7 +21,7 @@ export function initMaskTextScrollReveal(scope) {
           duration: SPLIT_LINES.duration,
           stagger: SPLIT_LINES.stagger,
           ease: SPLIT_LINES.ease,
-          delay: SPLIT_DELAY,
+          delay: SPLIT_DELAY + (isInView ? extraDelay : 0),
         };
 
         if (!isInView) {

@@ -12,7 +12,7 @@ import { resetWebflow } from './global/webflow.js';
 import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { initClock } from './modules/clock.js';
 import { initPageContent, initPageLayout } from './pages.js';
-import { runPageLeaveAnimation, runPageEnterAnimation } from './transitions/crossfade.js';
+import { runPageLeaveAnimation, runPageEnterAnimation, ENTER_DELAY } from './transitions/crossfade.js';
 
 let destroyPrevPage = null;
 
@@ -59,7 +59,8 @@ document.addEventListener('DOMContentLoaded', function() {
         /* New page sits on top of the current one while they cross-fade */
         gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
         updateCurrentLinks();
-        initPageContent(data.next.container, false);
+        /* Text starts when the new page begins to appear */
+        initPageContent(data.next.container, false, ENTER_DELAY);
       },
 
       leave(data) {

@@ -14,7 +14,7 @@ import { initFlipOnScroll } from './modules/flip.js';
 /* ======================================================
    PAGE INIT — content (before transition) + layout (after)
    ====================================================== */
-export function initPageContent(container, isFirstLoad) {
+export function initPageContent(container, isFirstLoad, textDelay = 0) {
   let splitHandled = false;
 
   /* Home: Axion + Loader */
@@ -41,7 +41,7 @@ export function initPageContent(container, isFirstLoad) {
   addCleanup(initGrids(container));
 
   /* Shared */
-  if (!splitHandled) addCleanup(initMaskTextScrollReveal(container));
+  if (!splitHandled) addCleanup(initMaskTextScrollReveal(container, textDelay));
   addCleanup(initCursorMarqueeEffect(container));
   addCleanup(initCursorImageEffect(container));
   addCleanup(initClock(container));
