@@ -10,6 +10,7 @@ import { initClock } from './modules/clock.js';
 import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
+import { initParallax } from './modules/parallax.js';
 
 /* ======================================================
    PAGE INIT — content (before transition) + layout (after)
@@ -45,6 +46,7 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
   addCleanup(initCursorMarqueeEffect(container));
   addCleanup(initCursorImageEffect(container));
   addCleanup(initClock(container));
+  addCleanup(initParallax(container));
   initCopyEmailClipboard(container);
   playVideos(container);
 }
