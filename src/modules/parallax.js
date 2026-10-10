@@ -2,8 +2,7 @@
  * Webflow: data-parallax="trigger" on the parallax wrapper
  *          data-parallax="target" on the element to move (optional, defaults to trigger)
  *          data-parallax-direction="vertical|horizontal" (default: vertical)
- *          data-parallax-unit="px|percent" (default: percent — uses yPercent; px — uses y in pixels)
- *          data-parallax-start / data-parallax-end — movement values (default: 20 / -20)
+ *          data-parallax-start / data-parallax-end — y/x pixel values (default: 20 / -20)
  *          data-parallax-scrub — scrub value (default: true)
  *          data-parallax-scroll-start / data-parallax-scroll-end — ScrollTrigger positions
  *          data-parallax-disable="mobile|mobileLandscape|tablet" — disable on breakpoint
@@ -41,13 +40,7 @@ export function initParallax(scope) {
           var target = trigger.querySelector('[data-parallax="target"]') || trigger;
 
           var direction = trigger.getAttribute('data-parallax-direction') || 'vertical';
-          var unit = trigger.getAttribute('data-parallax-unit') || 'percent';
-          var prop;
-          if (unit === 'px') {
-            prop = direction === 'horizontal' ? 'x' : 'y';
-          } else {
-            prop = direction === 'horizontal' ? 'xPercent' : 'yPercent';
-          }
+          var prop = direction === 'horizontal' ? 'x' : 'y';
 
           var scrubAttr = trigger.getAttribute('data-parallax-scrub');
           var scrub = scrubAttr ? parseFloat(scrubAttr) : true;
