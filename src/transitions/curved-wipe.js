@@ -9,6 +9,7 @@ const reducedMotionMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
    До этого момента панель закрывает экран и показывается логотип.
    Текст новой страницы начинает выезжать в этот же момент. */
 export const ENTER_DELAY = 1.35;
+export const TEXT_DELAY = ENTER_DELAY;
 
 function getParts() {
   const wrap = document.querySelector('[data-transition-wrap]');

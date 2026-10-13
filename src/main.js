@@ -13,8 +13,8 @@ import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { initClock } from './modules/clock.js';
 import { initPageContent, initPageLayout } from './pages.js';
 /* Active page transition — swap the file to switch:
-   './transitions/curved-wipe.js' or './transitions/crossfade.js' */
-import { runPageLeaveAnimation, runPageEnterAnimation, ENTER_DELAY } from './transitions/curved-wipe.js';
+   './transitions/parallax.js', './transitions/curved-wipe.js' or './transitions/crossfade.js' */
+import { runPageLeaveAnimation, runPageEnterAnimation, TEXT_DELAY } from './transitions/parallax.js';
 
 let destroyPrevPage = null;
 
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
         gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
         updateCurrentLinks();
         /* Text starts when the new page begins to appear */
-        initPageContent(data.next.container, false, ENTER_DELAY);
+        initPageContent(data.next.container, false, TEXT_DELAY);
       },
 
       leave(data) {
