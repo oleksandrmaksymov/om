@@ -49,16 +49,13 @@ export function runPageLeaveAnimation(current) {
 }
 
 /* New page slides up from the bottom over the current one */
-/* opts.zIndex — layer of the new page during the transition
-   (above the nav when it slides over the open mobile menu) */
-export function runPageEnterAnimation(next, onReady, opts) {
-  const zIndex = (opts && opts.zIndex) || 3;
+export function runPageEnterAnimation(next, onReady) {
   const tl = gsap.timeline();
 
   if (reducedMotionMQ.matches) {
     tl.set(next, { autoAlpha: 1 });
   } else {
-    tl.set(next, { zIndex: zIndex }, 0);
+    tl.set(next, { zIndex: 3 }, 0);
 
     tl.fromTo(next, { y: '100vh' }, {
       y: '0vh',
@@ -69,8 +66,8 @@ export function runPageEnterAnimation(next, onReady, opts) {
 
   tl.add('pageReady');
   tl.call(function() {
-    onReady(next);
     gsap.set(next, { clearProps: 'zIndex' });
+    onReady(next);
   }, null, 'pageReady');
 
   return new Promise(resolve => {
