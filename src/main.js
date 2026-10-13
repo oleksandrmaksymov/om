@@ -48,16 +48,16 @@ document.addEventListener('DOMContentLoaded', function() {
         initPageLayout(data.next.container);
       },
 
+      /* If the mobile menu is open, wait until its curtain has fully closed,
+         then start the page transition */
       beforeLeave() {
-        lenis.stop();
-        if (!destroyPrevPage) destroyPrevPage = detachPage();
+        return closeMobileMenu().then(function() {
+          lenis.stop();
+          if (!destroyPrevPage) destroyPrevPage = detachPage();
+        });
       },
 
-      /* Next page is loaded at this point — close the mobile menu now,
-         so its curtain and the page transition start in the same frame */
       beforeEnter(data) {
-        closeMobileMenu();
-        lenis.stop();
         if (!destroyPrevPage) destroyPrevPage = detachPage();
         /* New page sits on top of the current one while they cross-fade */
         gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
