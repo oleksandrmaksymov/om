@@ -5,7 +5,7 @@
    ====================================================== */
 import { lenis } from './core/setup.js';
 import { detachPage } from './core/lifecycle.js';
-import { initMobileMenu, closeMobileMenu } from './global/mobile-menu.js';
+import { initMobileMenu, closeMobileMenu, isMobileMenuOpen, resetMobileMenu, PAGE_OVER_MENU } from './global/mobile-menu.js';
 import { initHeadingLinks } from './global/heading-links.js';
 import { updateCurrentLinks } from './global/nav-current.js';
 import { resetWebflow } from './global/webflow.js';
@@ -17,9 +17,12 @@ import { initPageContent, initPageLayout } from './pages.js';
 import { runPageLeaveAnimation, runPageEnterAnimation, TEXT_DELAY } from './transitions/parallax.js';
 
 let destroyPrevPage = null;
+let overMenu = false; /* current transition slides over the open mobile menu */
 
 /* New page back into normal flow, scroll to top */
 function resetPage(container) {
+  /* New page now covers the screen — close the menu under it, no animation */
+  if (overMenu) { resetMobileMenu(); overMenu = false; }
   /* transform must not stay on the container — it would break position:fixed children (cursors) */
   gsap.set(container, { clearProps: 'position,top,left,right,transform' });
   window.scrollTo(0, 0);
@@ -51,7 +54,9 @@ document.addEventListener('DOMContentLoaded', function() {
       /* If the mobile menu is open, wait until its curtain has fully closed,
          then start the page transition */
       beforeLeave() {
-        return closeMobileMenu().then(function() {
+        overMenu = PAGE_OVER_MENU && isMobileMenuOpen();
+        const menuDone = overMenu ? Promise.resolve() : closeMobileMenu();
+        return menuDone.then(function() {
           lenis.stop();
           if (!destroyPrevPage) destroyPrevPage = detachPage();
         });
@@ -71,7 +76,8 @@ document.addEventListener('DOMContentLoaded', function() {
       },
 
       enter(data) {
-        return runPageEnterAnimation(data.next.container, resetPage);
+        /* nav z-index is 100 — go above it when sliding over the open menu */
+        return runPageEnterAnimation(data.next.container, resetPage, overMenu ? { zIndex: 101 } : null);
       },
 
       afterLeave() {

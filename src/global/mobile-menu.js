@@ -1,13 +1,20 @@
 import { lenis } from '../core/setup.js';
 
 /* ———— Mobile burger menu ———— */
-/* Пауза перед началом смены страницы после клика в меню (мс).
-   0 — шторка меню закрывается и страница меняется одновременно */
+/* Переход из открытого меню:
+   true  — новая страница выезжает поверх открытого меню, меню закрывается под ней мгновенно
+   false — сначала закрывается шторка меню, страница меняется одновременно с ней */
+export const PAGE_OVER_MENU = true;
+
+/* Пауза перед началом смены страницы после клика в меню (мс), только при PAGE_OVER_MENU = false */
 const MENU_CLOSE_DURATION = 0;
 
 /* Returns a promise that resolves once the menu has fully closed
    (resolves immediately if it wasn't open) */
 export let closeMobileMenu = function() { return Promise.resolve(); };
+export let isMobileMenuOpen = function() { return false; };
+/* Close with no animation (used under the new page after a transition) */
+export let resetMobileMenu = function() {};
 
 export function initMobileMenu() {
   const btn = document.querySelector('[data-menu-button]');
@@ -30,6 +37,16 @@ export function initMobileMenu() {
   btn.addEventListener('click', function() {
     setOpen(nav.dataset.menuStatus !== 'open');
   });
+
+  isMobileMenuOpen = function() { return nav.dataset.menuStatus === 'open'; };
+
+  resetMobileMenu = function() {
+    if (nav.dataset.menuStatus !== 'open') return;
+    nav.setAttribute('data-menu-instant', '');
+    setOpen(false);
+    void nav.offsetHeight; /* apply closed state without transitions */
+    nav.removeAttribute('data-menu-instant');
+  };
 
   closeMobileMenu = function() {
     if (nav.dataset.menuStatus !== 'open') return Promise.resolve();
