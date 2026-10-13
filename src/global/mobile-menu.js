@@ -1,8 +1,9 @@
 import { lenis } from '../core/setup.js';
 
 /* ———— Mobile burger menu ———— */
-/* Must match the .nav-bg clip-path transition in Site Head (0.7s) */
-const MENU_CLOSE_DURATION = 300;
+/* Пауза перед началом смены страницы после клика в меню (мс).
+   0 — шторка меню закрывается и страница меняется одновременно */
+const MENU_CLOSE_DURATION = 0;
 
 /* Returns a promise that resolves once the menu has fully closed
    (resolves immediately if it wasn't open) */
