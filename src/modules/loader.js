@@ -1,6 +1,7 @@
 import { lenis } from '../core/setup.js';
 import { addCleanup } from '../core/lifecycle.js';
 import { initMaskTextScrollReveal } from './split-text.js';
+import { PAGE_EASE, PAGE_DURATION } from '../core/motion.js';
 
 /* ———— Logo Reveal Loader ———— */
 export function initLogoRevealLoader(container) {
@@ -29,8 +30,9 @@ export function initLogoRevealLoader(container) {
     .to(wrap.querySelector('.loader__text-wrap'), { autoAlpha: 0, duration: 0.5 })
     .to(progressBar, { scaleX: 0, transformOrigin: 'right center', duration: 0.5 }, '<')
     .add('hideContent', '<')
-    .to(bg, { yPercent: -101, duration: 1 }, 'hideContent')
-    .to(logo, { autoAlpha: 0, duration: 0.5 }, 'hideContent+=0.5')
+    /* Black background slides up — same speed and ease as the page transition */
+    .to(logo, { autoAlpha: 0, duration: 0.3, ease: 'power1.out' }, 'hideContent')
+    .to(bg, { yPercent: -101, duration: PAGE_DURATION, ease: PAGE_EASE }, 'hideContent')
     .call(() => { addCleanup(initMaskTextScrollReveal(container)); }, null, 'hideContent+=0.3')
     .set(wrap, { display: 'none' })
     .call(() => { lenis.start(); })

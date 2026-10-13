@@ -3,15 +3,15 @@
    New page slides up over the current one; current page
    drifts up slower and darkens under [data-transition-dark].
    ====================================================== */
+import { PAGE_EASE, PAGE_DURATION } from '../core/motion.js';
+
 const reducedMotionMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-CustomEase.create('parallax', '0.7, 0.05, 0.13, 1');
-
-/* Длительность перехода (сек) */
-const DURATION = 1.2;
+/* Длительность и плавность — в src/core/motion.js (общие с лоадером) */
+const DURATION = PAGE_DURATION;
 
 /* Когда начинает выезжать текст новой страницы (сек от начала перехода) */
-export const TEXT_DELAY = 0.5;
+export const TEXT_DELAY = 0.35;
 
 /* Current page drifts up and darkens */
 export function runPageLeaveAnimation(current) {
@@ -34,13 +34,13 @@ export function runPageLeaveAnimation(current) {
   tl.fromTo(dark, { autoAlpha: 0 }, {
     autoAlpha: 0.8,
     duration: DURATION,
-    ease: 'parallax',
+    ease: PAGE_EASE,
   }, 0);
 
   tl.fromTo(current, { y: '0vh' }, {
     y: '-25vh',
     duration: DURATION,
-    ease: 'parallax',
+    ease: PAGE_EASE,
   }, 0);
 
   tl.set(dark, { autoAlpha: 0 });
@@ -60,7 +60,7 @@ export function runPageEnterAnimation(next, onReady) {
     tl.fromTo(next, { y: '100vh' }, {
       y: '0vh',
       duration: DURATION,
-      ease: 'parallax',
+      ease: PAGE_EASE,
     }, 0);
   }
 

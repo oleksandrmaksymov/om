@@ -5,7 +5,7 @@
 src/
 ├── main.js              ← точка входа: Barba и порядок запуска
 ├── pages.js             ← какие модули запускаются на странице
-├── core/                ← GSAP-плагины, Lenis, загрузка скриптов, жизненный цикл
+├── core/                ← GSAP-плагины, Lenis, жизненный цикл; motion.js — скорость/плавность перехода и лоадера
 ├── global/              ← nav (вне Barba-контейнера): меню, heading-link, текущая ссылка, Webflow
 ├── modules/             ← по файлу на эффект: axion, flip, loader, split-text, курсоры, сетка…
 └── transitions/          ← переходы: parallax.js (активный), curved-wipe.js, crossfade.js — выбор в main.js
