@@ -10,6 +10,7 @@ import { initClock } from './modules/clock.js';
 import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
+import { initTypeField } from './modules/type-field.js';
 
 
 /* ======================================================
@@ -55,4 +56,7 @@ export function initPageLayout(container) {
   if (container.querySelector('[data-flip-element]') && window.innerWidth > 991) {
     addCleanup(initFlipOnScroll(container));
   }
+
+  /* Home: type field — sticky + cursor physics need real page layout */
+  addCleanup(initTypeField(container));
 }
