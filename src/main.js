@@ -12,13 +12,16 @@ import { resetWebflow } from './global/webflow.js';
 import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { initClock } from './modules/clock.js';
 import { initPageContent, initPageLayout } from './pages.js';
-import { runPageLeaveAnimation, runPageEnterAnimation, ENTER_DELAY } from './transitions/crossfade.js';
+/* Active page transition — swap the file to switch:
+   './transitions/curved-wipe.js' or './transitions/crossfade.js' */
+import { runPageLeaveAnimation, runPageEnterAnimation, ENTER_DELAY } from './transitions/curved-wipe.js';
 
 let destroyPrevPage = null;
 
 /* New page back into normal flow, scroll to top */
 function resetPage(container) {
-  gsap.set(container, { clearProps: 'position,top,left,right' });
+  /* transform must not stay on the container — it would break position:fixed children (cursors) */
+  gsap.set(container, { clearProps: 'position,top,left,right,transform' });
   window.scrollTo(0, 0);
   lenis.scrollTo(0, { immediate: true, force: true });
   lenis.resize();
@@ -29,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     preventRunning: true,
     timeout: 7000,
     transitions: [{
-      name: 'crossfade',
+      name: 'default',
       sync: true,
 
       once(data) {
@@ -64,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function() {
       },
 
       leave(data) {
-        return runPageLeaveAnimation(data.current.container);
+        return runPageLeaveAnimation(data.current.container, data.next.container);
       },
 
       enter(data) {

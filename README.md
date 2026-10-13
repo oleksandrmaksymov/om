@@ -8,7 +8,7 @@ src/
 ├── core/                ← GSAP-плагины, Lenis, загрузка скриптов, жизненный цикл
 ├── global/              ← nav (вне Barba-контейнера): меню, heading-link, текущая ссылка, Webflow
 ├── modules/             ← по файлу на эффект: axion, flip, loader, split-text, курсоры, сетка…
-└── transitions/crossfade.js ← переход между страницами (Osmo Cross Fade)
+└── transitions/          ← переходы: curved-wipe.js (активный), crossfade.js — выбор в main.js
 ```
 
 
