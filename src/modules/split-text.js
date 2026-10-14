@@ -13,7 +13,6 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
       type: 'lines',
       autoSplit: true,
       mask: 'lines',
-      linesClass: 'text-line',   /* mask wrapper gets .text-line-mask (descender fix in Site Head) */
       onSplit(instance) {
         gsap.set(el, { autoAlpha: 1 });
 
