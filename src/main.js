@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function() {
         menuCurtain = null;
         return runPageEnterAnimation(data.next.container, resetPage, curtain).then(function() {
           /* Back to the CSS closed state */
-          if (curtain) gsap.set(curtain, { clearProps: 'clipPath,transition' });
+          if (curtain) gsap.set(curtain, { clearProps: 'clipPath,transition,filter' });
         });
       },
 

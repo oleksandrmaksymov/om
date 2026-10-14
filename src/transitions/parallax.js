@@ -13,6 +13,9 @@ const DURATION = PAGE_DURATION;
 /* Когда начинает выезжать текст новой страницы (сек от начала перехода) */
 export const TEXT_DELAY = 0.35;
 
+/* Насколько темнеет старая страница (и шторка меню) — 0…1 */
+const DARK = 0.8;
+
 /* Current page drifts up and darkens */
 export function runPageLeaveAnimation(current) {
   const wrap = document.querySelector('[data-transition-wrap]');
@@ -32,7 +35,7 @@ export function runPageLeaveAnimation(current) {
   tl.set(wrap, { zIndex: 2 });
 
   tl.fromTo(dark, { autoAlpha: 0 }, {
-    autoAlpha: 0.8,
+    autoAlpha: DARK,
     duration: DURATION,
     ease: PAGE_EASE,
   }, 0);
@@ -71,6 +74,15 @@ export function runPageEnterAnimation(next, onReady, curtain) {
         curtain.style.clipPath = 'inset(0px 0px ' + cut + 'px 0px)';
       } : null,
     }, 0);
+
+    /* Curtain darkens like the old page: brightness(1 - DARK) = black overlay at DARK */
+    if (curtain) {
+      tl.fromTo(curtain, { filter: 'brightness(1)' }, {
+        filter: 'brightness(' + (1 - DARK) + ')',
+        duration: DURATION,
+        ease: PAGE_EASE,
+      }, 0);
+    }
   }
 
   tl.add('pageReady');
