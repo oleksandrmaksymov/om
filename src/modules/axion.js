@@ -265,12 +265,12 @@ export function runAxion(container) {
   var overlayVisible = false;
 
   function onMouseMove(e) {
+    lastClientX = e.clientX; lastClientY = e.clientY;
     if (isTouchDevice || mode !== 'interactive') {
       isMouseOverCanvas = false;
       mouseWorldPos.set(9999,9999,0);
       return;
     }
-    lastClientX = e.clientX; lastClientY = e.clientY;
     var over = isPointerInContainer(e.clientX, e.clientY);
     if (over) {
       isMouseOverCanvas = true;
