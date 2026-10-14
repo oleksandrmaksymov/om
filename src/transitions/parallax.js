@@ -48,8 +48,11 @@ export function runPageLeaveAnimation(current) {
   return tl;
 }
 
-/* New page slides up from the bottom over the current one */
-export function runPageEnterAnimation(next, onReady) {
+/* New page slides up from the bottom over the current one.
+   curtain — mobile menu curtain (if the menu was open): its bottom edge
+   follows the new page's top edge every frame, so together they always
+   cover the screen with no strip of the old page between them. */
+export function runPageEnterAnimation(next, onReady, curtain) {
   const tl = gsap.timeline();
 
   if (reducedMotionMQ.matches) {
@@ -61,6 +64,12 @@ export function runPageEnterAnimation(next, onReady) {
       y: '0vh',
       duration: DURATION,
       ease: PAGE_EASE,
+      onUpdate: curtain ? function() {
+        const c = curtain.getBoundingClientRect();
+        const edge = next.getBoundingClientRect().top - c.top;
+        const cut = Math.max(0, c.height - Math.max(0, edge));
+        curtain.style.clipPath = 'inset(0px 0px ' + cut + 'px 0px)';
+      } : null,
     }, 0);
   }
 

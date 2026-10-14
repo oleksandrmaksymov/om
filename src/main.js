@@ -5,7 +5,7 @@
    ====================================================== */
 import { lenis } from './core/setup.js';
 import { detachPage } from './core/lifecycle.js';
-import { initMobileMenu, closeMobileMenu } from './global/mobile-menu.js';
+import { initMobileMenu, takeMenuCurtain } from './global/mobile-menu.js';
 import { initHeadingLinks } from './global/heading-links.js';
 import { updateCurrentLinks } from './global/nav-current.js';
 import { resetWebflow } from './global/webflow.js';
@@ -17,6 +17,7 @@ import { initPageContent, initPageLayout } from './pages.js';
 import { runPageLeaveAnimation, runPageEnterAnimation, TEXT_DELAY } from './transitions/parallax.js';
 
 let destroyPrevPage = null;
+let menuCurtain = null;   /* mobile menu curtain held open during a transition */
 
 /* New page back into normal flow, scroll to top */
 function resetPage(container) {
@@ -48,13 +49,12 @@ document.addEventListener('DOMContentLoaded', function() {
         initPageLayout(data.next.container);
       },
 
-      /* If the mobile menu is open, wait until its curtain has fully closed,
-         then start the page transition */
+      /* If the mobile menu is open, its curtain stays up and is closed
+         by the enter animation, edge-to-edge with the new page */
       beforeLeave() {
-        return closeMobileMenu().then(function() {
-          lenis.stop();
-          if (!destroyPrevPage) destroyPrevPage = detachPage();
-        });
+        menuCurtain = takeMenuCurtain();
+        lenis.stop();
+        if (!destroyPrevPage) destroyPrevPage = detachPage();
       },
 
       beforeEnter(data) {
@@ -71,7 +71,12 @@ document.addEventListener('DOMContentLoaded', function() {
       },
 
       enter(data) {
-        return runPageEnterAnimation(data.next.container, resetPage);
+        const curtain = menuCurtain;
+        menuCurtain = null;
+        return runPageEnterAnimation(data.next.container, resetPage, curtain).then(function() {
+          /* Back to the CSS closed state */
+          if (curtain) gsap.set(curtain, { clearProps: 'clipPath,transition' });
+        });
       },
 
       afterLeave() {

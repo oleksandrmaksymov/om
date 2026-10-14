@@ -1,13 +1,14 @@
 import { lenis } from '../core/setup.js';
 
 /* ———— Mobile burger menu ———— */
-/* Пауза перед началом смены страницы после клика в меню (мс).
-   0 — шторка меню закрывается и страница меняется одновременно */
-const MENU_CLOSE_DURATION = 0;
+/* Closes the menu with its CSS curtain animation (link to the current page) */
+export let closeMobileMenu = function() {};
 
-/* Returns a promise that resolves once the menu has fully closed
-   (resolves immediately if it wasn't open) */
-export let closeMobileMenu = function() { return Promise.resolve(); };
+/* Page transition from the open menu: closes the menu (links, burger),
+   but holds the curtain open so the transition can close it in sync
+   with the new page. Returns the curtain element, or null if the menu
+   wasn't open. */
+export let takeMenuCurtain = function() { return null; };
 
 export function initMobileMenu() {
   const btn = document.querySelector('[data-menu-button]');
@@ -32,9 +33,16 @@ export function initMobileMenu() {
   });
 
   closeMobileMenu = function() {
-    if (nav.dataset.menuStatus !== 'open') return Promise.resolve();
+    if (nav.dataset.menuStatus === 'open') setOpen(false);
+  };
+
+  takeMenuCurtain = function() {
+    if (nav.dataset.menuStatus !== 'open') return null;
+    const curtain = nav.querySelector('.nav-bg');
+    /* Inline styles beat the CSS closed state: curtain stays fully open */
+    if (curtain) gsap.set(curtain, { transition: 'none', clipPath: 'inset(0px 0px 0px 0px)' });
     setOpen(false);
-    return new Promise(function(resolve) { setTimeout(resolve, MENU_CLOSE_DURATION); });
+    return curtain;
   };
 
   /* Link to the page you're already on: don't navigate, just close the menu */
