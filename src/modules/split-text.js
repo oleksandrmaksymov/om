@@ -36,5 +36,19 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
       }
     }));
   });
-  return function() { splits.forEach(function(s) { s.revert(); }); };
+  /* Back from a minimized / backgrounded tab: Safari pauses ResizeObserver and timers
+     in the background, so autoSplit can keep lines measured at a temporary width.
+     Re-split at the real width (the reveal animation keeps its progress). */
+  function resplit() {
+    if (document.visibilityState !== 'visible') return;
+    splits.forEach(function(s) { if (s.isSplit) s.split(s.vars); });
+  }
+  document.addEventListener('visibilitychange', resplit);
+  window.addEventListener('pageshow', resplit);
+
+  return function() {
+    document.removeEventListener('visibilitychange', resplit);
+    window.removeEventListener('pageshow', resplit);
+    splits.forEach(function(s) { s.revert(); });
+  };
 }
