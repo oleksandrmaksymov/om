@@ -31,21 +31,21 @@ export function initLogoRevealLoader(container) {
     .to(wrap.querySelector('.loader__text-wrap'), { autoAlpha: 0, duration: 0.5 })
     .to(progressBar, { scaleX: 0, transformOrigin: 'right center', duration: 0.5 }, '<')
     .add('hideContent', '<')
-    /* Whole logo (grey base + white top) fades together — fading only the
-       white top used to uncover the grey base for a moment */
-    .to(logoContainer || logo, { autoAlpha: 0, duration: 0.3, ease: 'power1.out' }, 'hideContent')
     /* Text starts before the page is moved (positions must be measured untransformed);
        extra 0.3s delay keeps the same timing as before */
     .call(() => { addCleanup(initMaskTextScrollReveal(container, 0.3)); }, null, 'hideContent')
     /* Black background slides up — same speed and ease as the page transition.
-       The page rides up with it: its top edge follows the background's bottom
+       Logo moves with it; the page rides up with it: its top edge follows the background's bottom
        edge every frame (like the mobile menu curtain), so there is no gap. */
     .to(bg, {
       yPercent: -100,
       duration: PAGE_DURATION,
       ease: PAGE_EASE,
       onUpdate: function() {
-        gsap.set(container, { y: Math.max(0, bg.getBoundingClientRect().bottom) });
+        const r = bg.getBoundingClientRect();
+        gsap.set(container, { y: Math.max(0, r.bottom) });
+        /* Fully white logo leaves together with the background (no fade) */
+        if (logoContainer) gsap.set(logoContainer, { y: r.top });
       },
       onComplete: function() {
         /* transform must not stay on the container — breaks position:fixed children */
