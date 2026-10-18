@@ -3,14 +3,13 @@
    ====================================================== */
 
 /* Плавность (cubic-bezier) и скорость (сек).
-   Используются: переход между страницами, уезжание фона лоадера,
-   открытие/закрытие фона мобильного меню (через CSS-переменные ниже). */
+   Используются: переход между страницами, первая загрузка,
+   уезжание фона лоадера, шторка мобильного меню. */
 const PAGE_BEZIER = '0.7, 0.05, 0.13, 1';
 export const PAGE_DURATION = 0.9;
 
 CustomEase.create('parallax', PAGE_BEZIER);
 export const PAGE_EASE = 'parallax';
 
-/* Same values for CSS: var(--page-ease), var(--page-duration) */
-document.documentElement.style.setProperty('--page-ease', 'cubic-bezier(' + PAGE_BEZIER + ')');
-document.documentElement.style.setProperty('--page-duration', PAGE_DURATION + 's');
+/* Насколько темнеет уходящая страница (и шторка меню при переходе), 0…1 */
+export const PAGE_DARK = 0.8;

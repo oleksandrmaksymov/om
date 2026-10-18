@@ -17,13 +17,14 @@ import { initFlipOnScroll } from './modules/flip.js';
    ====================================================== */
 export function initPageContent(container, isFirstLoad, textDelay = 0) {
   let splitHandled = false;
+  let loaderTl = null;
 
   /* Home: Axion + Loader */
   addCleanup(initAxion(container));
 
   const loaderWrap = document.querySelector('[data-load-wrap]');
   if (loaderWrap) {
-    const loaderTl = (isFirstLoad && !sessionStorage.getItem('visited'))
+    loaderTl = (isFirstLoad && !sessionStorage.getItem('visited'))
       ? initLogoRevealLoader(container)
       : null;
     if (loaderTl) {
@@ -48,6 +49,9 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
   addCleanup(initClock(container));
   initCopyEmailClipboard(container);
   playVideos(container);
+
+  /* Home loader timeline (first visit), so Barba once can add the page enter to it */
+  return loaderTl;
 }
 
 export function initPageLayout(container) {

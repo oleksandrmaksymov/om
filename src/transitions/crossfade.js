@@ -52,3 +52,12 @@ export function runPageEnterAnimation(next, onReady) {
     tl.call(resolve, null, 'pageReady');
   });
 }
+
+/* First load (Barba once): no intro for this transition — just hide the
+   black [data-transition-dark] (opaque by default in Site Head CSS) */
+export function runPageOnceAnimation(next, onReady) {
+  const dark = document.querySelector('[data-transition-dark]');
+  if (dark) gsap.set(dark, { autoAlpha: 0 });
+  onReady(next);
+  return Promise.resolve();
+}

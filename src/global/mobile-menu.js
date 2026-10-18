@@ -1,19 +1,39 @@
 import { lenis } from '../core/setup.js';
+import { PAGE_EASE, PAGE_DURATION, PAGE_DARK } from '../core/motion.js';
 
 /* ———— Mobile burger menu ———— */
-/* Closes the menu with its CSS curtain animation (link to the current page) */
-export let closeMobileMenu = function() {};
+/* Curtain (.nav-bg) is animated by GSAP only. CSS sets just its closed start
+   state — GSAP docs: no CSS transitions on properties GSAP animates.
+   Links, burger lines, colors stay on CSS ([data-menu-status]). */
+const CURTAIN_OPEN = 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)';
+const CURTAIN_CLOSED = 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)';
 
-/* Page transition from the open menu: closes the menu (links, burger),
-   but holds the curtain open so the transition can close it in sync
-   with the new page. Returns the curtain element, or null if the menu
-   wasn't open. */
-export let takeMenuCurtain = function() { return null; };
+let curtain = null;
+
+/* Closes the menu. keepCurtain: true — curtain stays up so the page
+   transition can close it (closeMenuCurtain). Returns true if it was open. */
+export let closeMobileMenu = function() { return false; };
+
+/* Curtain closes with the same duration/ease as the page transition,
+   darkening like the old page. Started together with the enter animation. */
+export function closeMenuCurtain() {
+  if (!curtain) return;
+  gsap.timeline()
+    .to(curtain, { clipPath: CURTAIN_CLOSED, duration: PAGE_DURATION, ease: PAGE_EASE, overwrite: true }, 0)
+    .fromTo(curtain, { filter: 'brightness(1)' }, {
+      filter: 'brightness(' + (1 - PAGE_DARK) + ')',
+      duration: PAGE_DURATION,
+      ease: PAGE_EASE,
+    }, 0)
+    .set(curtain, { clearProps: 'filter' });
+}
 
 export function initMobileMenu() {
   const btn = document.querySelector('[data-menu-button]');
   const nav = document.querySelector('[data-menu-status]');
   if (!btn || !nav) return;
+
+  curtain = nav.querySelector('.nav-bg');
 
   btn.setAttribute('aria-expanded', 'false');
   btn.setAttribute('aria-controls', 'mobile-navigation');
@@ -28,21 +48,27 @@ export function initMobileMenu() {
     else { lenis.start(); document.body.style.overflow = ''; }
   }
 
+  function animateCurtain(open) {
+    if (!curtain) return;
+    gsap.to(curtain, {
+      clipPath: open ? CURTAIN_OPEN : CURTAIN_CLOSED,
+      duration: PAGE_DURATION,
+      ease: PAGE_EASE,
+      overwrite: true,
+    });
+  }
+
   btn.addEventListener('click', function() {
-    setOpen(nav.dataset.menuStatus !== 'open');
+    const open = nav.dataset.menuStatus !== 'open';
+    setOpen(open);
+    animateCurtain(open);
   });
 
-  closeMobileMenu = function() {
-    if (nav.dataset.menuStatus === 'open') setOpen(false);
-  };
-
-  takeMenuCurtain = function() {
-    if (nav.dataset.menuStatus !== 'open') return null;
-    const curtain = nav.querySelector('.nav-bg');
-    /* Inline styles beat the CSS closed state: curtain stays fully open */
-    if (curtain) gsap.set(curtain, { transition: 'none', clipPath: 'inset(0px 0px 0px 0px)' });
+  closeMobileMenu = function(options) {
+    if (nav.dataset.menuStatus !== 'open') return false;
     setOpen(false);
-    return curtain;
+    if (!(options && options.keepCurtain)) animateCurtain(false);
+    return true;
   };
 
   /* Link to the page you're already on: don't navigate, just close the menu */

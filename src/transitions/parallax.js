@@ -3,7 +3,7 @@
    New page slides up over the current one; current page
    drifts up slower and darkens under [data-transition-dark].
    ====================================================== */
-import { PAGE_EASE, PAGE_DURATION } from '../core/motion.js';
+import { PAGE_EASE, PAGE_DURATION, PAGE_DARK } from '../core/motion.js';
 
 const reducedMotionMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -12,9 +12,6 @@ const DURATION = PAGE_DURATION;
 
 /* Когда начинает выезжать текст новой страницы (сек от начала перехода) */
 export const TEXT_DELAY = 0.35;
-
-/* Насколько темнеет старая страница (и шторка меню) — 0…1 */
-const DARK = 0.8;
 
 /* Current page drifts up and darkens */
 export function runPageLeaveAnimation(current) {
@@ -35,7 +32,7 @@ export function runPageLeaveAnimation(current) {
   tl.set(wrap, { zIndex: 2 });
 
   tl.fromTo(dark, { autoAlpha: 0 }, {
-    autoAlpha: DARK,
+    autoAlpha: PAGE_DARK,
     duration: DURATION,
     ease: PAGE_EASE,
   }, 0);
@@ -52,10 +49,8 @@ export function runPageLeaveAnimation(current) {
 }
 
 /* New page slides up from the bottom over the current one.
-   curtain — mobile menu curtain (if the menu was open): its bottom edge
-   follows the new page's top edge every frame, so together they always
-   cover the screen with no strip of the old page between them. */
-export function runPageEnterAnimation(next, onReady, curtain) {
+   fromY — start offset (default: one screen); the loader passes its own height */
+export function runPageEnterAnimation(next, onReady, fromY = '100vh') {
   const tl = gsap.timeline();
 
   if (reducedMotionMQ.matches) {
@@ -63,26 +58,11 @@ export function runPageEnterAnimation(next, onReady, curtain) {
   } else {
     tl.set(next, { zIndex: 3 }, 0);
 
-    tl.fromTo(next, { y: '100vh' }, {
+    tl.fromTo(next, { y: fromY }, {
       y: '0vh',
       duration: DURATION,
       ease: PAGE_EASE,
-      onUpdate: curtain ? function() {
-        const c = curtain.getBoundingClientRect();
-        const edge = next.getBoundingClientRect().top - c.top;
-        const cut = Math.max(0, c.height - Math.max(0, edge));
-        curtain.style.clipPath = 'inset(0px 0px ' + cut + 'px 0px)';
-      } : null,
     }, 0);
-
-    /* Curtain darkens like the old page: brightness(1 - DARK) = black overlay at DARK */
-    if (curtain) {
-      tl.fromTo(curtain, { filter: 'brightness(1)' }, {
-        filter: 'brightness(' + (1 - DARK) + ')',
-        duration: DURATION,
-        ease: PAGE_EASE,
-      }, 0);
-    }
   }
 
   tl.add('pageReady');
@@ -93,5 +73,20 @@ export function runPageEnterAnimation(next, onReady, curtain) {
 
   return new Promise(resolve => {
     tl.call(resolve, null, 'pageReady');
+  });
+}
+
+/* First load (Barba once): the same enter, over the black [data-transition-dark]
+   (opaque by default in Site Head CSS, so nothing flashes before JS) */
+export function runPageOnceAnimation(next, onReady, fromY) {
+  const wrap = document.querySelector('[data-transition-wrap]');
+  const dark = wrap && wrap.querySelector('[data-transition-dark]');
+
+  if (wrap) gsap.set(wrap, { zIndex: 2 });
+  gsap.set(next, { position: 'relative' });
+
+  return runPageEnterAnimation(next, onReady, fromY).then(function() {
+    if (dark) gsap.set(dark, { autoAlpha: 0 });
+    if (wrap) gsap.set(wrap, { clearProps: 'zIndex' });
   });
 }

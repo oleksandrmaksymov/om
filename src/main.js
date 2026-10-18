@@ -5,20 +5,19 @@
    ====================================================== */
 import { lenis } from './core/setup.js';
 import { detachPage } from './core/lifecycle.js';
-import { initMobileMenu, takeMenuCurtain } from './global/mobile-menu.js';
+import { initMobileMenu, closeMobileMenu, closeMenuCurtain } from './global/mobile-menu.js';
 import { initHeadingLinks } from './global/heading-links.js';
 import { updateCurrentLinks } from './global/nav-current.js';
 import { resetWebflow } from './global/webflow.js';
 import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { initClock } from './modules/clock.js';
 import { initPageContent, initPageLayout } from './pages.js';
-import { hasPageIntro, runPageIntro, INTRO_TEXT_DELAY } from './modules/page-intro.js';
 /* Active page transition — swap the file to switch:
    './transitions/parallax.js', './transitions/curved-wipe.js' or './transitions/crossfade.js' */
-import { runPageLeaveAnimation, runPageEnterAnimation, TEXT_DELAY } from './transitions/parallax.js';
+import { runPageOnceAnimation, runPageLeaveAnimation, runPageEnterAnimation, TEXT_DELAY } from './transitions/parallax.js';
 
 let destroyPrevPage = null;
-let menuCurtain = null;   /* mobile menu curtain held open during a transition */
+let menuWasOpen = false;
 
 /* New page back into normal flow, scroll to top */
 function resetPage(container) {
@@ -46,17 +45,28 @@ document.addEventListener('DOMContentLoaded', function() {
           initClock(nav);
         }
         if (!document.querySelector('[data-load-wrap]')) sessionStorage.setItem('visited', '1');
-        /* First visit to a page without loader: short intro, text starts with it */
-        const intro = hasPageIntro();
-        initPageContent(data.next.container, true, intro ? INTRO_TEXT_DELAY : 0);
-        initPageLayout(data.next.container);
-        runPageIntro(data.next.container);
+
+        const next = data.next.container;
+        const loaderTl = initPageContent(next, true, TEXT_DELAY);
+        initPageLayout(next);
+
+        /* First load: page enters like in a transition. With the Home loader
+           it starts when the loader background leaves, from the loader's height */
+        if (loaderTl) {
+          loaderTl.call(function() {
+            const loaderBg = document.querySelector('[data-load-bg]');
+            runPageOnceAnimation(next, resetPage, loaderBg ? loaderBg.offsetHeight : undefined);
+          }, null, 'hideContent');
+        } else {
+          lenis.stop();
+          runPageOnceAnimation(next, resetPage).then(function() { lenis.start(); });
+        }
       },
 
-      /* If the mobile menu is open, its curtain stays up and is closed
-         by the enter animation, edge-to-edge with the new page */
+      /* Open mobile menu: links close now, the curtain stays up and closes
+         in enter() together with the page (same timeline start, duration, ease) */
       beforeLeave() {
-        menuCurtain = takeMenuCurtain();
+        menuWasOpen = closeMobileMenu({ keepCurtain: true });
         lenis.stop();
         if (!destroyPrevPage) destroyPrevPage = detachPage();
       },
@@ -75,12 +85,11 @@ document.addEventListener('DOMContentLoaded', function() {
       },
 
       enter(data) {
-        const curtain = menuCurtain;
-        menuCurtain = null;
-        return runPageEnterAnimation(data.next.container, resetPage, curtain).then(function() {
-          /* Back to the CSS closed state */
-          if (curtain) gsap.set(curtain, { clearProps: 'clipPath,transition,filter' });
-        });
+        if (menuWasOpen) {
+          closeMenuCurtain();
+          menuWasOpen = false;
+        }
+        return runPageEnterAnimation(data.next.container, resetPage);
       },
 
       afterLeave() {
