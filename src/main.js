@@ -12,6 +12,7 @@ import { resetWebflow } from './global/webflow.js';
 import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { initClock } from './modules/clock.js';
 import { initPageContent, initPageLayout } from './pages.js';
+import { hasPageIntro, runPageIntro, INTRO_TEXT_DELAY } from './modules/page-intro.js';
 /* Active page transition — swap the file to switch:
    './transitions/parallax.js', './transitions/curved-wipe.js' or './transitions/crossfade.js' */
 import { runPageLeaveAnimation, runPageEnterAnimation, TEXT_DELAY } from './transitions/parallax.js';
@@ -45,8 +46,11 @@ document.addEventListener('DOMContentLoaded', function() {
           initClock(nav);
         }
         if (!document.querySelector('[data-load-wrap]')) sessionStorage.setItem('visited', '1');
-        initPageContent(data.next.container, true);
+        /* First visit to a page without loader: short intro, text starts with it */
+        const intro = hasPageIntro();
+        initPageContent(data.next.container, true, intro ? INTRO_TEXT_DELAY : 0);
         initPageLayout(data.next.container);
+        runPageIntro(data.next.container);
       },
 
       /* If the mobile menu is open, its curtain stays up and is closed
