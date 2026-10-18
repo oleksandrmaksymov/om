@@ -13,6 +13,7 @@ export function initLogoRevealLoader(container) {
   const bg = wrap.querySelector('[data-load-bg]');
   const progressBar = wrap.querySelector('[data-load-progress]');
   const logo = wrap.querySelector('[data-load-logo]');
+  const logoContainer = wrap.querySelector('[data-load-container]');
   const textElements = Array.from(wrap.querySelectorAll('[data-load-text]'));
 
   const resetTargets = Array.from(wrap.querySelectorAll('[data-load-reset]:not([data-load-text])'));
@@ -30,9 +31,24 @@ export function initLogoRevealLoader(container) {
     .to(wrap.querySelector('.loader__text-wrap'), { autoAlpha: 0, duration: 0.5 })
     .to(progressBar, { scaleX: 0, transformOrigin: 'right center', duration: 0.5 }, '<')
     .add('hideContent', '<')
-    /* Black background slides up — same speed and ease as the page transition */
-    .to(logo, { autoAlpha: 0, duration: 0.3, ease: 'power1.out' }, 'hideContent')
-    .to(bg, { yPercent: -101, duration: PAGE_DURATION, ease: PAGE_EASE }, 'hideContent')
+    /* Whole logo (grey base + white top) fades together — fading only the
+       white top used to uncover the grey base for a moment */
+    .to(logoContainer || logo, { autoAlpha: 0, duration: 0.3, ease: 'power1.out' }, 'hideContent')
+    /* Black background slides up — same speed and ease as the page transition.
+       The page rides up with it: its top edge follows the background's bottom
+       edge every frame (like the mobile menu curtain), so there is no gap. */
+    .to(bg, {
+      yPercent: -100,
+      duration: PAGE_DURATION,
+      ease: PAGE_EASE,
+      onUpdate: function() {
+        gsap.set(container, { y: Math.max(0, bg.getBoundingClientRect().bottom) });
+      },
+      onComplete: function() {
+        /* transform must not stay on the container — breaks position:fixed children */
+        gsap.set(container, { clearProps: 'transform' });
+      },
+    }, 'hideContent')
     .call(() => { addCleanup(initMaskTextScrollReveal(container)); }, null, 'hideContent+=0.3')
     .set(wrap, { display: 'none' })
     .call(() => { lenis.start(); })
