@@ -70,17 +70,4 @@ export function initMobileMenu() {
     if (!(options && options.keepCurtain)) animateCurtain(false);
     return true;
   };
-
-  /* Link to the page you're already on: don't navigate, just close the menu */
-  const norm = function(p) { return p.replace(/\/$/, '') || '/'; };
-  nav.addEventListener('click', function(e) {
-    const a = e.target.closest('a[href]');
-    if (!a) return;
-    const url = new URL(a.href, location.href);
-    if (url.origin !== location.origin || url.hash) return;
-    if (norm(url.pathname) !== norm(location.pathname)) return;
-    e.preventDefault();
-    e.stopPropagation();
-    closeMobileMenu();
-  });
 }

@@ -28,13 +28,68 @@ function resetPage(container) {
   lenis.resize();
 }
 
+/* Page change hooks — shared by the 'default' and 'self' transitions */
+const pageTransition = {
+  sync: true,
+
+  /* Open mobile menu: links close now, the curtain stays up and closes
+     in enter() together with the page (same timeline start, duration, ease) */
+  beforeLeave() {
+    menuWasOpen = closeMobileMenu({ keepCurtain: true });
+    lenis.stop();
+    if (!destroyPrevPage) destroyPrevPage = detachPage();
+  },
+
+  beforeEnter(data) {
+    if (!destroyPrevPage) destroyPrevPage = detachPage();
+    /* New page sits on top of the current one while they cross-fade */
+    gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
+    updateCurrentLinks();
+    /* Text starts when the new page begins to appear */
+    initPageContent(data.next.container, false, TEXT_DELAY);
+  },
+
+  leave(data) {
+    return runPageLeaveAnimation(data.current.container, data.next.container);
+  },
+
+  enter(data) {
+    if (menuWasOpen) {
+      closeMenuCurtain();
+      menuWasOpen = false;
+    }
+    return runPageEnterAnimation(data.next.container, resetPage);
+  },
+
+  afterLeave() {
+    if (destroyPrevPage) {
+      destroyPrevPage();
+      destroyPrevPage = null;
+    }
+  },
+
+  afterEnter(data) {
+    resetWebflow(data);
+    initPageLayout(data.next.container);
+    lenis.start();
+    ScrollTrigger.refresh();
+  }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
   barba.init({
     preventRunning: true,
     timeout: 7000,
+    /* Links with #hash to the current page keep native anchor behaviour
+       (otherwise Barba would treat them as the 'self' transition) */
+    prevent: function({ el }) {
+      if (!el || !el.href) return false;
+      const url = new URL(el.href, location.href);
+      return !!url.hash && url.pathname === location.pathname;
+    },
     transitions: [{
       name: 'default',
-      sync: true,
+      ...pageTransition,
 
       once(data) {
         const nav = document.querySelector('[data-menu-status]');
@@ -61,50 +116,12 @@ document.addEventListener('DOMContentLoaded', function() {
           lenis.stop();
           runPageOnceAnimation(next, resetPage).then(function() { lenis.start(); });
         }
-      },
-
-      /* Open mobile menu: links close now, the curtain stays up and closes
-         in enter() together with the page (same timeline start, duration, ease) */
-      beforeLeave() {
-        menuWasOpen = closeMobileMenu({ keepCurtain: true });
-        lenis.stop();
-        if (!destroyPrevPage) destroyPrevPage = detachPage();
-      },
-
-      beforeEnter(data) {
-        if (!destroyPrevPage) destroyPrevPage = detachPage();
-        /* New page sits on top of the current one while they cross-fade */
-        gsap.set(data.next.container, { position: 'fixed', top: 0, left: 0, right: 0 });
-        updateCurrentLinks();
-        /* Text starts when the new page begins to appear */
-        initPageContent(data.next.container, false, TEXT_DELAY);
-      },
-
-      leave(data) {
-        return runPageLeaveAnimation(data.current.container, data.next.container);
-      },
-
-      enter(data) {
-        if (menuWasOpen) {
-          closeMenuCurtain();
-          menuWasOpen = false;
-        }
-        return runPageEnterAnimation(data.next.container, resetPage);
-      },
-
-      afterLeave() {
-        if (destroyPrevPage) {
-          destroyPrevPage();
-          destroyPrevPage = null;
-        }
-      },
-
-      afterEnter(data) {
-        resetWebflow(data);
-        initPageLayout(data.next.container);
-        lenis.start();
-        ScrollTrigger.refresh();
       }
+    }, {
+      /* Link to the current page (menu, nav): Barba loads it again
+         and plays the same transition (Barba docs: 'self' transition) */
+      name: 'self',
+      ...pageTransition,
     }]
   });
 });
