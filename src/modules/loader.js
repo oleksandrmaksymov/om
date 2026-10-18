@@ -34,6 +34,9 @@ export function initLogoRevealLoader(container) {
     /* Whole logo (grey base + white top) fades together — fading only the
        white top used to uncover the grey base for a moment */
     .to(logoContainer || logo, { autoAlpha: 0, duration: 0.3, ease: 'power1.out' }, 'hideContent')
+    /* Text starts before the page is moved (positions must be measured untransformed);
+       extra 0.3s delay keeps the same timing as before */
+    .call(() => { addCleanup(initMaskTextScrollReveal(container, 0.3)); }, null, 'hideContent')
     /* Black background slides up — same speed and ease as the page transition.
        The page rides up with it: its top edge follows the background's bottom
        edge every frame (like the mobile menu curtain), so there is no gap. */
@@ -49,7 +52,6 @@ export function initLogoRevealLoader(container) {
         gsap.set(container, { clearProps: 'transform' });
       },
     }, 'hideContent')
-    .call(() => { addCleanup(initMaskTextScrollReveal(container)); }, null, 'hideContent+=0.3')
     .set(wrap, { display: 'none' })
     .call(() => { lenis.start(); })
     .call(() => { sessionStorage.setItem('visited', '1'); });
