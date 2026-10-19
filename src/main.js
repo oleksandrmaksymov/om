@@ -26,6 +26,8 @@ function resetPage(container) {
   window.scrollTo(0, 0);
   lenis.scrollTo(0, { immediate: true, force: true });
   lenis.resize();
+  /* layout is final now (no transform) — re-measure every ScrollTrigger (GSAP docs: refresh after layout changes) */
+  ScrollTrigger.refresh();
 }
 
 /* Page change hooks — shared by the 'default' and 'self' transitions */
