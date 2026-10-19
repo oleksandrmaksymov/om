@@ -7,7 +7,7 @@
    Before the start the source is shown, after the end the target — the letters layer
    (position: fixed, created here) is visible only while the effect runs.
    Settings (optional, on the source):
-     data-scatter-mid-opacity   letters in the cloud               (0.2)
+     data-scatter-mid-opacity   letters in the cloud               (= opacity of the source)
      data-scatter-overflow      cloud beyond the screen edges      (0.8)
      data-scatter-swap          where on its path a letter turns from mirrored to normal (0.5)
      data-scatter-swap-length   length of that cross-fade          (0.16)
@@ -60,7 +60,7 @@ function initPair(source, target, scope) {
   const d = source.dataset;
   const n = (v, def) => (v === undefined || v === '' || isNaN(+v) ? def : +v);
   const P = {
-    midOpacity: n(d.scatterMidOpacity, 0.2),
+    midOpacity: n(d.scatterMidOpacity, null), // null → keep the source opacity the whole way
     overflow:   n(d.scatterOverflow, 0.8),
     swap:       n(d.scatterSwap, 0.5),
     swapLength: n(d.scatterSwapLength, 0.16),
@@ -108,6 +108,7 @@ function initPair(source, target, scope) {
     const srcStyle = getComputedStyle(source);
     const tgtStyle = getComputedStyle(target);
     const fromOpacity = parseFloat(srcStyle.opacity);
+    const midOpacity = P.midOpacity === null ? fromOpacity : P.midOpacity;
     const font = `font-family:${tgtStyle.fontFamily};font-size:${tgtStyle.fontSize};font-weight:${tgtStyle.fontWeight};letter-spacing:${tgtStyle.letterSpacing};color:${tgtStyle.color};`;
 
     const r = seededRandom(P.seed);
@@ -153,9 +154,9 @@ function initPair(source, target, scope) {
       const swapDur = span * P.swapLength;
       const revealAt = Math.max(reveal, swapAt + swapDur);
       timeline.to([letter, ghost], { keyframes, duration: span, ease: 'none' }, t0)
-        .to(ghost, { opacity: P.midOpacity, duration: fade, ease: 'sine.inOut' }, t0)
+        .to(ghost, { opacity: midOpacity, duration: fade, ease: 'sine.inOut' }, t0)
         .to(ghost, { opacity: 0, duration: swapDur, ease: 'sine.inOut' }, swapAt)
-        .to(letter, { opacity: P.midOpacity, duration: swapDur, ease: 'sine.inOut' }, swapAt)
+        .to(letter, { opacity: midOpacity, duration: swapDur, ease: 'sine.inOut' }, swapAt)
         .to(letter, { opacity: 1, duration: t1 - revealAt, ease: 'sine.in' }, revealAt);
     });
     timeline.to({}, { duration: 1 - timeline.duration() + 0.0001 }); // exactly 0–1 of the range
