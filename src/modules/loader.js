@@ -13,7 +13,6 @@ export function initLogoRevealLoader(container) {
   const bg = wrap.querySelector('[data-load-bg]');
   const progressBar = wrap.querySelector('[data-load-progress]');
   const logo = wrap.querySelector('[data-load-logo]');
-  const logoContainer = wrap.querySelector('[data-load-container]');
   const textElements = Array.from(wrap.querySelectorAll('[data-load-text]'));
 
   const resetTargets = Array.from(wrap.querySelectorAll('[data-load-reset]:not([data-load-text])'));
@@ -34,10 +33,15 @@ export function initLogoRevealLoader(container) {
     /* Page text starts here, before the page enter offsets the page
        (positions are measured in place); +0.3s keeps the reveal timing */
     .call(() => { addCleanup(initMaskTextScrollReveal(container, 0.3)); }, null, 'hideContent')
-    /* Black background and the white logo slide up together — same speed and
-       ease as the page transition. The page enter is added at 'hideContent'
-       by main.js (Barba once), same duration/ease, so the edges meet. */
-    .to([bg, logoContainer].filter(Boolean), { yPercent: -100, duration: PAGE_DURATION, ease: PAGE_EASE }, 'hideContent')
+    /* Loader folds up from the bottom (clip-path, like the mobile menu curtain):
+       content stays in place, so the white logo stays where the nav logo is and
+       is cut off by the edge at the very end. Same speed and ease as the page
+       transition; the page enter is added at 'hideContent' by main.js (Barba once)
+       from the loader's height, so the edges meet. */
+    .fromTo(wrap,
+      { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' },
+      { clipPath: 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)', duration: PAGE_DURATION, ease: PAGE_EASE },
+      'hideContent')
     .set(wrap, { display: 'none' })
     .call(() => { lenis.start(); })
     .call(() => { sessionStorage.setItem('visited', '1'); });
