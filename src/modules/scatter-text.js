@@ -12,12 +12,12 @@
      data-scatter-swap          where on its path a letter turns from mirrored to normal (0.5)
      data-scatter-swap-length   length of that cross-fade          (0.16)
      data-scatter-spread        uneven start/arrival               (0.04)
-     data-scatter-reveal        screens before the end where letters start to gather into full opacity (1)
      data-scatter-seed          scatter variant                    (42)
    Layout is measured on every ScrollTrigger refresh (resize, page transitions).
    Desktop only (≥992px). */
 
-const STEPS = 24; // samples of each letter curve
+const STEPS = 24;        // samples of each letter curve
+const REVEAL_SCREENS = 0.5; // letters gather into full opacity over the last half screen
 
 function seededRandom(seed) { // sfc32 + splitmix32
   let s = seed >>> 0;
@@ -66,7 +66,6 @@ function initPair(source, target, scope) {
     swap:       n(d.scatterSwap, 0.5),
     swapLength: n(d.scatterSwapLength, 0.16),
     spread:     n(d.scatterSpread, 0.04),
-    reveal:     n(d.scatterReveal, 1),
     seed:       n(d.scatterSeed, 42),
   };
 
@@ -105,7 +104,7 @@ function initPair(source, target, scope) {
 
     const S0 = self.start, S1 = self.end, range = Math.max(1, S1 - S0);
     const vw = window.innerWidth, vh = window.innerHeight;
-    const reveal = Math.max(0.5, 1 - (P.reveal * vh) / range); // gather starts P.reveal screens before the end
+    const reveal = Math.max(0.5, 1 - (REVEAL_SCREENS * vh) / range); // gather starts half a screen before the end
 
     const srcStyle = getComputedStyle(source);
     const tgtStyle = getComputedStyle(target);
