@@ -1,5 +1,6 @@
 import { loadScript } from '../core/load-script.js';
 import { runAxionCase } from './axion-case.js';
+import { runAxionCard } from './axion-card.js';
 /* ———— Axion 3D (Three.js) ———— */
 export const THREE_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
 
@@ -14,6 +15,22 @@ export function initAxion(scope) {
        Axion case page: no Flip → standalone interactive variant. */
     const isHome = !!container.closest('[data-flip-element="target"]');
     cleanup = isHome ? runAxion(container) : runAxionCase(container);
+  });
+  return function() {
+    destroyed = true;
+    if (cleanup) cleanup();
+  };
+}
+
+/* ———— Axion Card — square spin-only for logotypes grid ———— */
+export function initAxionCard(scope) {
+  const container = scope.querySelector('#axion-card');
+  if (!container) return;
+  let destroyed = false;
+  let cleanup = null;
+  loadScript(THREE_SRC).then(function() {
+    if (destroyed) return;
+    cleanup = runAxionCard(container);
   });
   return function() {
     destroyed = true;
