@@ -226,7 +226,8 @@ export function runAxionCard(container) {
 
     if (particleSystem) {
       particleSystem.rotation.y = currentRotY;
-      particleSystem.position.y = -15;
+      particleSystem.position.y = 5;
+      particleSystem.scale.setScalar(0.85);
     }
 
     for (var i=0;i<dustCount;i++) {
