@@ -1,5 +1,5 @@
 import { addCleanup } from './core/lifecycle.js';
-import { initAxion } from './modules/axion.js';
+import { initAxion, initAxionCard } from './modules/axion.js';
 import { initLogoRevealLoader } from './modules/loader.js';
 import { initTextFitToWidth } from './modules/text-fit.js';
 import { initMaskTextScrollReveal } from './modules/split-text.js';
@@ -19,6 +19,8 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
 
   /* Home: Axion + Loader */
   addCleanup(initAxion(container));
+  /* Works card: square Axion */
+  addCleanup(initAxionCard(container));
 
   const loaderWrap = document.querySelector('[data-load-wrap]');
   if (loaderWrap) {

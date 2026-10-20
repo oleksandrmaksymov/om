@@ -13,13 +13,25 @@ export function initAxion(scope) {
   loadScript(THREE_SRC).then(function() {
     if (destroyed) return;
     /* Home: canvas lives inside the Flip-scaled video → scroll-driven variant.
-       Card: square spin-only preview on Works page.
        Axion case page: no Flip → standalone interactive variant. */
     const isHome = !!container.closest('[data-flip-element="target"]');
-    const isCard = container.hasAttribute('data-axion-card');
-    cleanup = isHome ? runAxion(container)
-           : isCard  ? runAxionCard(container)
-           :           runAxionCase(container);
+    cleanup = isHome ? runAxion(container) : runAxionCase(container);
+  });
+  return function() {
+    destroyed = true;
+    if (cleanup) cleanup();
+  };
+}
+
+/* Square spin-only variant for Works card */
+export function initAxionCard(scope) {
+  const container = scope.querySelector('#axion-card-container');
+  if (!container) return;
+  let destroyed = false;
+  let cleanup = null;
+  loadScript(THREE_SRC).then(function() {
+    if (destroyed) return;
+    cleanup = runAxionCard(container);
   });
   return function() {
     destroyed = true;
