@@ -12,4 +12,25 @@ export const lenis = new Lenis({
 });
 lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add((time) => { lenis.raf(time * 1000); });
-gsap.ticker.lagSmoothing(0);
+
+/* Keep GSAP ticking in background tabs (official GSAP helper)
+   https://gsap.com/docs/v3/HelperFunctions/helpers/tickGSAPWhileHidden */
+function tickGSAPWhileHidden(value) {
+  if (value === false) {
+    document.removeEventListener("visibilitychange", tickGSAPWhileHidden.fn);
+    return clearInterval(tickGSAPWhileHidden.id);
+  }
+  const onChange = () => {
+    clearInterval(tickGSAPWhileHidden.id);
+    if (document.hidden) {
+      gsap.ticker.lagSmoothing(0);
+      tickGSAPWhileHidden.id = setInterval(gsap.ticker.tick, 500);
+    } else {
+      gsap.ticker.lagSmoothing(500, 33);
+    }
+  };
+  document.addEventListener("visibilitychange", onChange);
+  tickGSAPWhileHidden.fn = onChange;
+  onChange();
+}
+tickGSAPWhileHidden(true);
