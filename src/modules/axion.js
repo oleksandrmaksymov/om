@@ -23,16 +23,15 @@ export function initAxion(scope) {
   };
 }
 
-/* Square spin-only variant for Works card */
+/* Square spin-only variant for Logotypes page card */
 export function initAxionCard(scope) {
-  var link = scope.querySelector('a[href$="/axion"].works-grid__card-1-1-12-5');
-  if (!link) return;
-  var img = link.querySelector('img');
+  var card = scope.querySelector('.cases-grid__card-1-1-alt-1');
+  if (!card) return;
+  var img = card.querySelector('img');
   if (img) img.style.display = 'none';
   var container = document.createElement('div');
-  container.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0';
-  link.style.position = 'relative';
-  link.appendChild(container);
+  container.style.cssText = 'width:100%;height:100%';
+  card.appendChild(container);
   let destroyed = false;
   let cleanup = null;
   loadScript(THREE_SRC).then(function() {
@@ -42,6 +41,7 @@ export function initAxionCard(scope) {
   return function() {
     destroyed = true;
     if (cleanup) cleanup();
+    if (img) img.style.display = '';
   };
 }
 
