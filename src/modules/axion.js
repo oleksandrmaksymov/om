@@ -1,5 +1,6 @@
 import { loadScript } from '../core/load-script.js';
 import { runAxionCase } from './axion-case.js';
+import { runAxionCard } from './axion-card.js';
 
 /* ———— Axion 3D (Three.js) ———— */
 export const THREE_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
@@ -12,9 +13,13 @@ export function initAxion(scope) {
   loadScript(THREE_SRC).then(function() {
     if (destroyed) return;
     /* Home: canvas lives inside the Flip-scaled video → scroll-driven variant.
+       Card: square spin-only preview on Works page.
        Axion case page: no Flip → standalone interactive variant. */
     const isHome = !!container.closest('[data-flip-element="target"]');
-    cleanup = isHome ? runAxion(container) : runAxionCase(container);
+    const isCard = container.hasAttribute('data-axion-card');
+    cleanup = isHome ? runAxion(container)
+           : isCard  ? runAxionCard(container)
+           :           runAxionCase(container);
   });
   return function() {
     destroyed = true;
