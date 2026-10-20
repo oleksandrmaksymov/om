@@ -16,8 +16,12 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
       onSplit(instance) {
         gsap.set(el, { autoAlpha: 1 });
 
-        const vars = {
-          yPercent: SPLIT_LINES.yPercent,
+        /* gsap.fromTo — explicit start and end values so the tween
+           always knows its destination, even after an autoSplit re-split
+           (GSAP docs: fromTo is safer than from when the natural CSS
+           value might be affected by other transforms or re-renders) */
+        const toVars = {
+          yPercent: 0,
           duration: SPLIT_LINES.duration,
           stagger: SPLIT_LINES.stagger,
           ease: SPLIT_LINES.ease,
@@ -25,14 +29,17 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
         };
 
         if (!isInView) {
-          vars.scrollTrigger = {
+          toVars.scrollTrigger = {
             trigger: el,
             start: 'clamp(top 80%)',
             once: true,
           };
         }
 
-        return gsap.from(instance.lines, vars);
+        return gsap.fromTo(instance.lines,
+          { yPercent: SPLIT_LINES.yPercent },
+          toVars
+        );
       }
     }));
   });

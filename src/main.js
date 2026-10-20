@@ -116,7 +116,34 @@ document.addEventListener('DOMContentLoaded', function() {
           }, null, 'hideContent');
         } else {
           lenis.stop();
-          runPageOnceAnimation(next, resetPage).then(function() { lenis.start(); });
+          let enterDone = false;
+          runPageOnceAnimation(next, resetPage).then(function() {
+            enterDone = true;
+            lenis.start();
+          });
+
+          /* Safety net: if the page-enter animation hasn't completed after 2s
+             (browser restored a background tab, frozen page, or stale state),
+             force everything into the ready state.
+             Uses gsap.set + gsap.killTweensOf — standard GSAP immediate-state API. */
+          setTimeout(function() {
+            if (enterDone) return;
+            enterDone = true;
+            var darkEl = document.querySelector('[data-transition-dark]');
+            if (darkEl) gsap.set(darkEl, { autoAlpha: 0 });
+            gsap.killTweensOf(next);
+            gsap.set(next, { y: 0, clearProps: 'position,zIndex' });
+            resetPage(next);
+            /* Force split text into visible end-state (GSAP docs: killTweensOf + set) */
+            document.querySelectorAll('[data-split]').forEach(function(el) {
+              gsap.set(el, { autoAlpha: 1 });
+              var innerDivs = el.querySelectorAll('div > div');
+              gsap.killTweensOf(innerDivs);
+              gsap.set(innerDivs, { clearProps: 'transform' });
+            });
+            lenis.start();
+            ScrollTrigger.refresh();
+          }, 2000);
         }
       }
     }, {
