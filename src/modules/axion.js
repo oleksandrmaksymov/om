@@ -1,7 +1,5 @@
 import { loadScript } from '../core/load-script.js';
 import { runAxionCase } from './axion-case.js';
-import { runAxionCard } from './axion-card.js';
-
 /* ———— Axion 3D (Three.js) ———— */
 export const THREE_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
 
@@ -20,28 +18,6 @@ export function initAxion(scope) {
   return function() {
     destroyed = true;
     if (cleanup) cleanup();
-  };
-}
-
-/* Square spin-only variant for Logotypes page card */
-export function initAxionCard(scope) {
-  var card = scope.querySelector('.cases-grid__card-1-1-alt-1');
-  if (!card) return;
-  var img = card.querySelector('img');
-  if (img) img.style.display = 'none';
-  var container = document.createElement('div');
-  container.style.cssText = 'width:100%;height:100%';
-  card.appendChild(container);
-  let destroyed = false;
-  let cleanup = null;
-  loadScript(THREE_SRC).then(function() {
-    if (destroyed) return;
-    cleanup = runAxionCard(container);
-  });
-  return function() {
-    destroyed = true;
-    if (cleanup) cleanup();
-    if (img) img.style.display = '';
   };
 }
 
