@@ -25,8 +25,14 @@ export function initAxion(scope) {
 
 /* Square spin-only variant for Works card */
 export function initAxionCard(scope) {
-  const container = scope.querySelector('#axion-card-container');
-  if (!container) return;
+  var link = scope.querySelector('a[href$="/axion"].works-grid__card-1-1-12-5');
+  if (!link) return;
+  var img = link.querySelector('img');
+  if (img) img.style.display = 'none';
+  var container = document.createElement('div');
+  container.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0';
+  link.style.position = 'relative';
+  link.appendChild(container);
   let destroyed = false;
   let cleanup = null;
   loadScript(THREE_SRC).then(function() {
