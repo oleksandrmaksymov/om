@@ -2,10 +2,8 @@ import { addCleanup } from './core/lifecycle.js';
 import { initAxion } from './modules/axion.js';
 import { initLogoRevealLoader } from './modules/loader.js';
 import { initTextFitToWidth } from './modules/text-fit.js';
-import { initGrids } from './modules/pixel-grid.js';
 import { initMaskTextScrollReveal } from './modules/split-text.js';
 import { initCursorMarqueeEffect } from './modules/cursor-marquee.js';
-import { initCursorImageEffect } from './modules/cursor-image.js';
 import { initClock } from './modules/clock.js';
 import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { playVideos } from './modules/videos.js';
@@ -39,13 +37,9 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
   /* Axion page */
   addCleanup(initTextFitToWidth(container));
 
-  /* Info page */
-  addCleanup(initGrids(container));
-
   /* Shared */
   if (!splitHandled) addCleanup(initMaskTextScrollReveal(container, textDelay));
   addCleanup(initCursorMarqueeEffect(container));
-  addCleanup(initCursorImageEffect(container));
   addCleanup(initClock(container));
   initCopyEmailClipboard(container);
   playVideos(container);
