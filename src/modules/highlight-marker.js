@@ -1,31 +1,18 @@
 /* ———— Highlight Marker Text Reveal (osmo component) ———— */
+/* Bars COVER text on scroll; hover reveals individual lines */
 
-const defaults = {
-  direction: 'right',
-  theme: '--color-dark',
-  scrollStart: 'top 90%',
-  staggerStart: 'start',
-  stagger: 100,
-  barDuration: 0.6,
-  barEase: 'power3.inOut',
-};
+const MARKER_COVER = { duration: 0.8, ease: 'expo.out' };
+const MARKER_STAGGER = 0.08;
 
 const directionMap = {
-  right: { prop: 'scaleX', origin: 'right center' },
-  left:  { prop: 'scaleX', origin: 'left center' },
-  up:    { prop: 'scaleY', origin: 'center top' },
-  down:  { prop: 'scaleY', origin: 'center bottom' },
+  right: { prop: 'scaleX', origin: 'left center' },
+  left:  { prop: 'scaleX', origin: 'right center' },
+  up:    { prop: 'scaleY', origin: 'center bottom' },
+  down:  { prop: 'scaleY', origin: 'center top' },
 };
 
-function resolveColor(value) {
-  if (value.startsWith('--')) {
-    return getComputedStyle(document.body).getPropertyValue(value).trim() || value;
-  }
-  return value;
-}
-
 function createBar(color, origin) {
-  const bar = document.createElement('div');
+  var bar = document.createElement('div');
   bar.className = 'highlight-marker-bar';
   Object.assign(bar.style, {
     backgroundColor: color,
@@ -35,24 +22,25 @@ function createBar(color, origin) {
 }
 
 export function initHighlightMarkerTextReveal(scope) {
-  const elements = scope.querySelectorAll('[data-highlight-marker-reveal]');
+  var elements = scope.querySelectorAll('[data-highlight-marker-reveal]');
   if (!elements.length) return function() {};
 
-  const instances = [];
+  var instances = [];
 
   elements.forEach(function(el) {
-    const direction    = el.getAttribute('data-marker-direction')    || defaults.direction;
-    const theme        = el.getAttribute('data-marker-theme')        || defaults.theme;
-    const scrollStart  = el.getAttribute('data-marker-scroll-start') || defaults.scrollStart;
-    const staggerStart = el.getAttribute('data-marker-stagger-start') || defaults.staggerStart;
-    const staggerOffset = (parseFloat(el.getAttribute('data-marker-stagger')) || defaults.stagger) / 1000;
+    var direction   = el.getAttribute('data-marker-direction') || 'right';
+    var theme       = el.getAttribute('data-marker-theme') || '#000000';
+    var scrollStart = el.getAttribute('data-marker-scroll-start') || 'top 90%';
 
-    const color     = resolveColor(theme);
-    const dirConfig = directionMap[direction] || directionMap.right;
+    var color = theme.startsWith('--')
+      ? (getComputedStyle(document.body).getPropertyValue(theme).trim() || theme)
+      : theme;
+    var dirConfig = directionMap[direction] || directionMap.right;
 
-    const instance = { timeline: null, scrollTrigger: null, split: null };
+    var instance = { timeline: null, scrollTrigger: null, split: null, listeners: [] };
+    var covered = false;
 
-    const split = SplitText.create(el, {
+    var split = SplitText.create(el, {
       type: 'lines',
       linesClass: 'highlight-marker-line',
       autoSplit: true,
@@ -60,31 +48,49 @@ export function initHighlightMarkerTextReveal(scope) {
         /* Teardown previous build (re-split on font swap) */
         if (instance.timeline)      { instance.timeline.kill(); }
         if (instance.scrollTrigger) { instance.scrollTrigger.kill(); }
-        el.querySelectorAll('.highlight-marker-bar').forEach(function(bar) { bar.remove(); });
+        el.querySelectorAll('.highlight-marker-bar').forEach(function(b) { b.remove(); });
+        instance.listeners.forEach(function(l) { l.el.removeEventListener(l.type, l.fn); });
+        instance.listeners = [];
+        covered = false;
 
-        /* Build bars and timeline */
         var lines = self.lines;
-        var tl = gsap.timeline({ paused: true });
+        var tl = gsap.timeline({
+          paused: true,
+          onComplete: function() { covered = true; },
+        });
 
         lines.forEach(function(line, i) {
           gsap.set(line, { position: 'relative', overflow: 'hidden' });
 
           var bar = createBar(color, dirConfig.origin);
+          gsap.set(bar, { [dirConfig.prop]: 0 });
           line.appendChild(bar);
 
-          var staggerIndex = staggerStart === 'end' ? lines.length - 1 - i : i;
-
+          /* Bar covers text on scroll */
           tl.to(bar, {
-            [dirConfig.prop]: 0,
-            duration: defaults.barDuration,
-            ease: defaults.barEase,
-          }, staggerIndex * staggerOffset);
+            [dirConfig.prop]: 1,
+            duration: MARKER_COVER.duration,
+            ease: MARKER_COVER.ease,
+          }, i * MARKER_STAGGER);
+
+          /* Hover: reveal on enter, cover on leave */
+          var onEnter = function() {
+            if (!covered) return;
+            gsap.to(bar, { [dirConfig.prop]: 0, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
+          };
+          var onLeave = function() {
+            if (!covered) return;
+            gsap.to(bar, { [dirConfig.prop]: 1, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
+          };
+
+          line.addEventListener('mouseenter', onEnter);
+          line.addEventListener('mouseleave', onLeave);
+          instance.listeners.push(
+            { el: line, type: 'mouseenter', fn: onEnter },
+            { el: line, type: 'mouseleave', fn: onLeave }
+          );
         });
 
-        /* Reveal parent — bars are covering the text */
-        gsap.set(el, { autoAlpha: 1 });
-
-        /* ScrollTrigger */
         var st = ScrollTrigger.create({
           trigger: el,
           start: scrollStart,
@@ -106,6 +112,7 @@ export function initHighlightMarkerTextReveal(scope) {
     instances.forEach(function(inst) {
       if (inst.timeline)      { inst.timeline.kill(); }
       if (inst.scrollTrigger) { inst.scrollTrigger.kill(); }
+      inst.listeners.forEach(function(l) { l.el.removeEventListener(l.type, l.fn); });
       if (inst.split)         { inst.split.revert(); }
     });
   };
