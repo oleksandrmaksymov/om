@@ -8,6 +8,7 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
   scope.querySelectorAll('[data-split]').forEach(el => {
 
     const isInView = el.getBoundingClientRect().top < window.innerHeight;
+    let revealed = false;
 
     splits.push(SplitText.create(el, {
       type: 'lines',
@@ -16,12 +17,16 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
       onSplit(instance) {
         gsap.set(el, { autoAlpha: 1 });
 
+        /* Re-split after font swap: only rebuild lines, don't re-animate */
+        if (revealed) return;
+
         const vars = {
           yPercent: SPLIT_LINES.yPercent,
           duration: SPLIT_LINES.duration,
           stagger: SPLIT_LINES.stagger,
           ease: SPLIT_LINES.ease,
           delay: SPLIT_DELAY + (isInView ? extraDelay : 0),
+          onComplete: function() { revealed = true; },
         };
 
         if (!isInView) {
@@ -30,11 +35,23 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
             start: 'clamp(top 80%)',
             once: true,
           };
+          vars.onComplete = function() { revealed = true; };
         }
 
         return gsap.from(instance.lines, vars);
       }
     }));
   });
+
+  /* Safety: force re-split after the browser has painted with the loaded font.
+     Double rAF guarantees at least one completed paint cycle —
+     if font-display:swap swapped after SplitText measured, this corrects the lines.
+     The revealed flag above prevents the animation from replaying. */
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      splits.forEach(function(s) { s.split(); });
+    });
+  });
+
   return function() { splits.forEach(function(s) { s.revert(); }); };
 }
