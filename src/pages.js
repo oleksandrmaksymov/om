@@ -9,6 +9,7 @@ import { initClock } from './modules/clock.js';
 import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
+import { initWavyAccordion } from './modules/wavy-accordion.js';
 
 
 /* ======================================================
@@ -46,6 +47,7 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
   addCleanup(initHighlightMarkerTextReveal(container));
   addCleanup(initCursorMarqueeEffect(container));
   addCleanup(initClock(container));
+  addCleanup(initWavyAccordion(container));
   initCopyEmailClipboard(container);
   playVideos(container);
 
