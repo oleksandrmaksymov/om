@@ -6,7 +6,7 @@
    ====================================================== */
 const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.min.js';
 
-const openSize = 6; // the open image is this many times wider than a closed one
+const openSize = 4; // open image = 50% of block width with 5 slides (4 / (4 + 4))
 const springStiffness = 160; // how hard the images pull towards their new size
 const springDamping = 20; // lower lets the open image overshoot more
 const bend = 1.6; // how far the edges bow while they move, 0 keeps them straight
