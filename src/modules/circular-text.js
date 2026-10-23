@@ -1,6 +1,6 @@
 /* ———— Circular Text Scroll Reveal ———— */
 /* Osmo Sticky Title Scroll Effect (reveal only) on SVG textPath rings.
-   Webflow: section [data-circular-text="wrap"] → sticky [data-circular-text="sticky"] → Embed svg [data-circular-text="svg"]
+   Webflow: section [data-circular-text="wrap"] → Embed svg [data-circular-text="svg"]
             → <text data-circular-text="line" data-at="0 | 0.5"> (data-at = start, share of a line reveal).
    Letters appear one by one (steps), scrubbed both ways. */
 
@@ -37,19 +37,12 @@ export function initCircularText(scope) {
   });
 
   const lineChars = lines.map(splitLine);
-  gsap.set(svg, { visibility: 'visible' });
-
-  /* sticky element: the reveal runs exactly while it stays pinned
-     (mobile 100vh ≠ visible viewport, so 'bottom bottom' ends too late) */
-  const sticky = wrap.querySelector('[data-circular-text="sticky"]');
-  if (!sticky) return function() {};
 
   const tl = gsap.timeline({
     scrollTrigger: {
       trigger: wrap,
       start: 'top top',
-      end: function() { return '+=' + (wrap.offsetHeight - sticky.offsetHeight); },
-      invalidateOnRefresh: true,
+      end: 'bottom bottom',
       scrub: true,
     },
   });
