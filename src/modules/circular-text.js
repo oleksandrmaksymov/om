@@ -1,8 +1,10 @@
 /* ———— Circular Text Scroll Reveal ———— */
 /* Osmo Sticky Title Scroll Effect (reveal only) on SVG textPath rings.
    Webflow: section [data-circular-text="wrap"] → Embeds (desktop / mobile) svg [data-circular-text="svg"]
-            → <text data-circular-text="line" data-at="0 | 0.5"> (data-at = start, share of a line reveal).
-   Page content is pinned while the square is in the screen center, letters appear one by one (steps), scrubbed both ways. */
+            → <path data-circular-text="path" data-cx data-cy data-r data-start> (share of the block width, start angle)
+            → <text data-circular-text="line" data-at="0 | 0.5" font-size="px"> (data-at = start, share of a line reveal).
+   Fonts keep their px size, rings follow the block width.
+   Page content is pinned while the block is held, letters appear one by one (steps), scrubbed both ways. */
 
 const REVEAL_DURATION = 0.7; // stagger amount per line
 const PIN_DISTANCE = '150%';  // how long the block is held (share of the screen height)
@@ -24,12 +26,45 @@ function splitLine(line) {
   return chars;
 }
 
+/* Full clockwise circle starting at startDeg */
+function circlePath(cx, cy, r, startDeg) {
+  const a = startDeg * Math.PI / 180;
+  const b = a + Math.PI;
+  const x1 = cx + r * Math.cos(a), y1 = cy + r * Math.sin(a);
+  const x2 = cx + r * Math.cos(b), y2 = cy + r * Math.sin(b);
+  return 'M' + x1 + ',' + y1 + ' A' + r + ',' + r + ' 0 1,1 ' + x2 + ',' + y2 +
+         ' A' + r + ',' + r + ' 0 1,1 ' + x1 + ',' + y1;
+}
+
+/* SVG units = real px of the block (fonts stay px), rings = share of the block width */
+function layoutSvg(svg) {
+  const size = svg.getBoundingClientRect().width;
+  if (!size) return; // hidden variant (display: none)
+  svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
+  svg.querySelectorAll('[data-circular-text="path"]').forEach(function(p) {
+    p.setAttribute('d', circlePath(
+      size * parseFloat(p.dataset.cx),
+      size * parseFloat(p.dataset.cy),
+      size * parseFloat(p.dataset.r),
+      parseFloat(p.dataset.start)
+    ));
+  });
+}
+
 export function initCircularText(scope) {
   const wrap = scope.querySelector('[data-circular-text="wrap"]');
   if (!wrap) return function() {};
+  const svgs = Array.from(wrap.querySelectorAll('[data-circular-text="svg"]'));
   /* desktop + mobile SVG variants (Webflow shows one per breakpoint) — both animate together */
   const lines = Array.from(wrap.querySelectorAll('[data-circular-text="svg"] [data-circular-text="line"]'));
-  if (!lines.length) return function() {};
+  if (!svgs.length || !lines.length) return function() {};
+
+  /* rings follow the block size (also when the visible variant switches on resize) */
+  svgs.forEach(layoutSvg);
+  const ro = new ResizeObserver(function(entries) {
+    entries.forEach(function(entry) { layoutSvg(entry.target); });
+  });
+  svgs.forEach(function(svg) { ro.observe(svg); });
 
   /* keep original text to restore on cleanup */
   const originals = lines.map(function(line) {
@@ -65,6 +100,7 @@ export function initCircularText(scope) {
   });
 
   return function() {
+    ro.disconnect();
     if (tl.scrollTrigger) tl.scrollTrigger.kill(true);
     tl.kill();
     lines.forEach(function(line, i) {
