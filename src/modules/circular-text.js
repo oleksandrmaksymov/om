@@ -2,7 +2,7 @@
 /* Osmo Sticky Title Scroll Effect (reveal only) on SVG textPath rings.
    Webflow: section [data-circular-text="wrap"] → Embeds (desktop / mobile) svg [data-circular-text="svg"]
             → <text data-circular-text="line" data-at="0 | 0.5"> (data-at = start, share of a line reveal).
-   Block is pinned in the screen center (GSAP pin), letters appear one by one (steps), scrubbed both ways. */
+   Page content is pinned while the square is in the screen center, letters appear one by one (steps), scrubbed both ways. */
 
 const REVEAL_DURATION = 0.7; // stagger amount per line
 const PIN_DISTANCE = '150%';  // how long the block is held (share of the screen height)
@@ -53,13 +53,14 @@ export function initCircularText(scope) {
     return tl;
   }
 
-  /* Block stops in the screen center (GSAP pin), letters appear only while it is held,
-     then it scrolls on. Same on every screen size. */
+  /* When the square reaches the screen center the whole page content stops (GSAP pin on
+     [data-circular-text="pin"]), letters appear while it is held, then the page scrolls on. */
+  const pinTarget = scope.querySelector('[data-circular-text="pin"]') || wrap;
   const tl = buildTimeline({
     trigger: wrap,
     start: 'center center',
     end: '+=' + PIN_DISTANCE,
-    pin: true,
+    pin: pinTarget,
     scrub: true,
   });
 
