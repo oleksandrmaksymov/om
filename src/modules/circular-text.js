@@ -53,12 +53,12 @@ export function initCircularText(scope) {
     return tl;
   }
 
-  /* When the square reaches the screen center the whole page content stops (GSAP pin on
+  /* When the block's bottom edge reaches the screen bottom the whole page content stops (GSAP pin on
      [data-circular-text="pin"]), letters appear while it is held, then the page scrolls on. */
   const pinTarget = scope.querySelector('[data-circular-text="pin"]') || wrap;
   const tl = buildTimeline({
     trigger: wrap,
-    start: 'center center',
+    start: 'bottom bottom', // block's bottom edge (line with the next block) meets the screen bottom
     end: '+=' + PIN_DISTANCE,
     pin: pinTarget,
     scrub: true,
