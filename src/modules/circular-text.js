@@ -2,9 +2,10 @@
 /* Osmo Sticky Title Scroll Effect (reveal only) on SVG textPath rings.
    Webflow: section [data-circular-text="wrap"] → Embed svg [data-circular-text="svg"]
             → <text data-circular-text="line" data-at="0 | 0.5"> (data-at = start, share of a line reveal).
-   Letters appear one by one (steps), scrubbed both ways. */
+   Block is pinned in the screen center (GSAP pin), letters appear one by one (steps), scrubbed both ways. */
 
 const REVEAL_DURATION = 0.7; // stagger amount per line
+const PIN_DISTANCE = '150%';  // how long the block is held (share of the screen height)
 
 /* SplitText can't split SVG textPath — split chars into tspans, keep spaces */
 function splitLine(line) {
@@ -50,22 +51,22 @@ export function initCircularText(scope) {
         ease: 'steps(1)',
       }, (parseFloat(line.dataset.at) || 0) * REVEAL_DURATION);
     });
+    return tl;
   }
 
-  const mm = gsap.matchMedia();
-
-  /* Desktop / tablet: section is pinned (CSS sticky), reveal runs while it stays */
-  mm.add('(min-width: 480px)', function() {
-    buildTimeline({ trigger: wrap, start: 'top top', end: 'bottom bottom', scrub: true });
-  });
-
-  /* Phone: plain square in flow, reveal while it scrolls in up to the screen center */
-  mm.add('(max-width: 479px)', function() {
-    buildTimeline({ trigger: svg, start: 'top bottom', end: 'center center', scrub: true });
+  /* Block stops in the screen center (GSAP pin), letters appear only while it is held,
+     then it scrolls on. Same on every screen size. */
+  const tl = buildTimeline({
+    trigger: wrap,
+    start: 'center center',
+    end: '+=' + PIN_DISTANCE,
+    pin: true,
+    scrub: true,
   });
 
   return function() {
-    mm.revert();
+    if (tl.scrollTrigger) tl.scrollTrigger.kill(true);
+    tl.kill();
     lines.forEach(function(line, i) {
       line.querySelectorAll('textPath').forEach(function(tp, j) { tp.textContent = originals[i][j]; });
     });
