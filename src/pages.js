@@ -10,6 +10,7 @@ import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
 import { initWavyAccordion } from './modules/wavy-accordion.js';
+import { initCircularText } from './modules/circular-text.js';
 
 
 /* ======================================================
@@ -21,6 +22,9 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
 
   /* Home: Axion + Loader */
   addCleanup(initAxion(container));
+
+  /* Home: circular text (scroll reveal) */
+  addCleanup(initCircularText(container));
 
   /* Logotypes grid: square spin-only Axion card */
   addCleanup(initAxionCard(container));
