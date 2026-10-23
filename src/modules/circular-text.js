@@ -38,29 +38,34 @@ export function initCircularText(scope) {
 
   const lineChars = lines.map(splitLine);
 
-  const tl = gsap.timeline({
-    scrollTrigger: {
-      trigger: wrap,
-      start: 'top top',
-      end: 'bottom bottom',
-      scrub: true,
-    },
+  function buildTimeline(scrollTrigger) {
+    const tl = gsap.timeline({ scrollTrigger: scrollTrigger });
+    lines.forEach(function(line, i) {
+      const chars = lineChars[i];
+      if (!chars.length) return;
+      tl.from(chars, {
+        autoAlpha: 0,
+        stagger: { amount: REVEAL_DURATION, from: 'start' },
+        duration: REVEAL_DURATION / chars.length,
+        ease: 'steps(1)',
+      }, (parseFloat(line.dataset.at) || 0) * REVEAL_DURATION);
+    });
+  }
+
+  const mm = gsap.matchMedia();
+
+  /* Desktop / tablet: section is pinned (CSS sticky), reveal runs while it stays */
+  mm.add('(min-width: 480px)', function() {
+    buildTimeline({ trigger: wrap, start: 'top top', end: 'bottom bottom', scrub: true });
   });
 
-  lines.forEach(function(line, i) {
-    const chars = lineChars[i];
-    if (!chars.length) return;
-    tl.from(chars, {
-      autoAlpha: 0,
-      stagger: { amount: REVEAL_DURATION, from: 'start' },
-      duration: REVEAL_DURATION / chars.length,
-      ease: 'steps(1)',
-    }, (parseFloat(line.dataset.at) || 0) * REVEAL_DURATION);
+  /* Phone: plain square in flow, reveal while it scrolls in up to the screen center */
+  mm.add('(max-width: 479px)', function() {
+    buildTimeline({ trigger: svg, start: 'top bottom', end: 'center center', scrub: true });
   });
 
   return function() {
-    if (tl.scrollTrigger) tl.scrollTrigger.kill();
-    tl.kill();
+    mm.revert();
     lines.forEach(function(line, i) {
       line.querySelectorAll('textPath').forEach(function(tp, j) { tp.textContent = originals[i][j]; });
     });
