@@ -93,27 +93,17 @@ export function initCircularText(scope) {
   const pinTarget = scope.querySelector('[data-circular-text="pin"]') || wrap;
   const tl = buildTimeline({
     trigger: wrap,
-    start: 'bottom bottom', // block's bottom edge (line with the next block) meets the screen bottom
+    /* block's bottom edge (line with the next block) meets the bottom of the visible area.
+       documentElement.clientHeight = viewport with the mobile browser bars shown (constant),
+       so the block stays fully visible whether the bars are shown or hidden */
+    start: function() { return 'bottom ' + document.documentElement.clientHeight + 'px'; },
     end: '+=' + PIN_DISTANCE,
     pin: pinTarget,
     scrub: true,
   });
 
-  /* Touch-only devices: the browser bars showing/hiding would push the pinned block under them.
-     JS-driven scroll (GSAP docs: normalizeScroll) only around this block — one screen before
-     the pin until one screen after; everywhere else the native scroll stays. */
-  let zone = null;
-  if (ScrollTrigger.isTouch === 1) {
-    zone = ScrollTrigger.create({
-      start: function() { return tl.scrollTrigger.start - window.innerHeight; },
-      end: function() { return tl.scrollTrigger.end + window.innerHeight; },
-      onToggle: function(self) { ScrollTrigger.normalizeScroll(self.isActive); },
-    });
-  }
-
   return function() {
     ro.disconnect();
-    if (zone) { zone.kill(); ScrollTrigger.normalizeScroll(false); }
     if (tl.scrollTrigger) tl.scrollTrigger.kill(true);
     tl.kill();
     lines.forEach(function(line, i) {
