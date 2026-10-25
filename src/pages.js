@@ -10,7 +10,7 @@ import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
 import { initWavyAccordion } from './modules/wavy-accordion.js';
-import { initCircularText } from './modules/circular-text.js';
+import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 
 
 /* ======================================================
@@ -23,7 +23,7 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
   /* Home: Axion + Loader */
   addCleanup(initAxion(container));
 
-  /* Home: circular text (scroll reveal) */
+  /* Info: circular text — split letters (pin + reveal are created in initPageLayout) */
   addCleanup(initCircularText(container));
 
   /* Logotypes grid: square spin-only Axion card */
@@ -60,6 +60,9 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
 }
 
 export function initPageLayout(container) {
+  /* Info: circular text pin needs real page layout (after the transition, scroll at top) */
+  addCleanup(initCircularTextScroll(container));
+
   /* Home: Flip needs real page layout (no 3D transforms) */
   if (container.querySelector('[data-flip-element]') && window.innerWidth > 991) {
     addCleanup(initFlipOnScroll(container));

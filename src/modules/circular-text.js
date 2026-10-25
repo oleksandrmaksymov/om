@@ -25,6 +25,10 @@ function splitLine(line) {
   return chars;
 }
 
+/* split state per page container (content stage → layout stage) */
+const splits = new WeakMap();
+
+/* Content stage (with the page transition): split letters, hide them — no ScrollTrigger yet */
 export function initCircularText(scope) {
   const wrap = scope.querySelector('[data-circular-text="wrap"]');
   if (!wrap) return function() {};
@@ -37,38 +41,47 @@ export function initCircularText(scope) {
   });
 
   const lineChars = lines.map(splitLine);
+  lineChars.forEach(function(chars) { gsap.set(chars, { autoAlpha: 0 }); });
+  splits.set(scope, { wrap: wrap, lines: lines, lineChars: lineChars });
 
-  function buildTimeline(scrollTrigger) {
-    const tl = gsap.timeline({ scrollTrigger: scrollTrigger });
+  return function() {
+    splits.delete(scope);
     lines.forEach(function(line, i) {
-      const chars = lineChars[i];
-      if (!chars.length) return;
-      tl.from(chars, {
-        autoAlpha: 0,
-        stagger: { amount: REVEAL_DURATION, from: 'start' },
-        duration: REVEAL_DURATION / chars.length,
-        ease: 'steps(1)',
-      }, (parseFloat(line.dataset.at) || 0) * REVEAL_DURATION);
+      line.querySelectorAll('textPath').forEach(function(tp, j) { tp.textContent = originals[i][j]; });
     });
-    return tl;
-  }
+  };
+}
 
-  /* When the block's bottom edge reaches the screen bottom the whole page content stops (GSAP pin on
-     [data-circular-text="pin"]), letters appear while it is held, then the page scrolls on. */
-  const pinTarget = scope.querySelector('[data-circular-text="pin"]') || wrap;
-  const tl = buildTimeline({
-    trigger: wrap,
-    start: 'bottom bottom', // block's bottom edge (line with the next block) meets the screen bottom
-    end: '+=' + PIN_DISTANCE,
-    pin: pinTarget,
-    scrub: true,
+/* Layout stage (after the transition, page in its real position — like Flip):
+   pin + scroll-scrubbed reveal (GSAP docs: create pins when the layout is final) */
+export function initCircularTextScroll(scope) {
+  const state = splits.get(scope);
+  if (!state) return function() {};
+
+  const tl = gsap.timeline({
+    scrollTrigger: {
+      trigger: state.wrap,
+      start: 'bottom bottom', // block's bottom edge (line with the next block) meets the screen bottom
+      end: '+=' + PIN_DISTANCE,
+      /* the whole page content stops while the letters appear, then the page scrolls on */
+      pin: scope.querySelector('[data-circular-text="pin"]') || state.wrap,
+      scrub: true,
+    },
+  });
+
+  state.lines.forEach(function(line, i) {
+    const chars = state.lineChars[i];
+    if (!chars.length) return;
+    tl.fromTo(chars, { autoAlpha: 0 }, {
+      autoAlpha: 1,
+      stagger: { amount: REVEAL_DURATION, from: 'start' },
+      duration: REVEAL_DURATION / chars.length,
+      ease: 'steps(1)',
+    }, (parseFloat(line.dataset.at) || 0) * REVEAL_DURATION);
   });
 
   return function() {
     if (tl.scrollTrigger) tl.scrollTrigger.kill(true);
     tl.kill();
-    lines.forEach(function(line, i) {
-      line.querySelectorAll('textPath').forEach(function(tp, j) { tp.textContent = originals[i][j]; });
-    });
   };
 }
