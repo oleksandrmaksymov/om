@@ -99,8 +99,21 @@ export function initCircularText(scope) {
     scrub: true,
   });
 
+  /* Touch-only devices: the browser bars showing/hiding would push the pinned block under them.
+     JS-driven scroll (GSAP docs: normalizeScroll) only around this block — one screen before
+     the pin until one screen after; everywhere else the native scroll stays. */
+  let zone = null;
+  if (ScrollTrigger.isTouch === 1) {
+    zone = ScrollTrigger.create({
+      start: function() { return tl.scrollTrigger.start - window.innerHeight; },
+      end: function() { return tl.scrollTrigger.end + window.innerHeight; },
+      onToggle: function(self) { ScrollTrigger.normalizeScroll(self.isActive); },
+    });
+  }
+
   return function() {
     ro.disconnect();
+    if (zone) { zone.kill(); ScrollTrigger.normalizeScroll(false); }
     if (tl.scrollTrigger) tl.scrollTrigger.kill(true);
     tl.kill();
     lines.forEach(function(line, i) {

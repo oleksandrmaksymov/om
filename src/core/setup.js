@@ -6,14 +6,15 @@ CustomEase.create('osmo', '0.625, 0.05, 0, 1');
    don't recalculate every ScrollTrigger for that (GSAP docs: ignoreMobileResize) */
 ScrollTrigger.config({ ignoreMobileResize: true });
 
-/* Touch-only devices: scroll runs on the JS thread, so the browser bars don't show/hide
-   mid-scroll and pinned blocks (circular-text) keep their position (GSAP docs: normalizeScroll) */
-if (ScrollTrigger.isTouch === 1) ScrollTrigger.normalizeScroll(true);
 
 export const lenis = new Lenis({
   lerp: 0.08,
   wheelMultiplier: 1,
 });
 lenis.on('scroll', ScrollTrigger.update);
-gsap.ticker.add((time) => { lenis.raf(time * 1000); });
+/* Touch-only devices: Lenis doesn't smooth touch scroll (syncTouch off) — skip its loop,
+   native scroll stays on the browser thread. Only immediate scrollTo is used, which needs no loop. */
+if (ScrollTrigger.isTouch !== 1) {
+  gsap.ticker.add((time) => { lenis.raf(time * 1000); });
+}
 gsap.ticker.lagSmoothing(0);
