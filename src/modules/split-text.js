@@ -7,8 +7,7 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
   const splits = [];
   let cancelled = false;
 
-  function create(el) {
-    const isInView = el.getBoundingClientRect().top < window.innerHeight;
+  function create(el, isInView) {
     let revealed = false;
 
     splits.push(SplitText.create(el, {
@@ -51,10 +50,15 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
      Double rAF guarantees at least one completed paint cycle — with font-display:swap
      (and on a restored tab) lines measured earlier use the fallback font (fixed 21.10).
      One split → the reveal starts once and is never restarted. */
+  /* in view or not — measured now, before the page-enter animation moves the container (as before) */
+  const items = Array.from(scope.querySelectorAll('[data-split]')).map(function(el) {
+    return { el: el, isInView: el.getBoundingClientRect().top < window.innerHeight };
+  });
+
   requestAnimationFrame(function() {
     requestAnimationFrame(function() {
       if (cancelled) return;
-      scope.querySelectorAll('[data-split]').forEach(create);
+      items.forEach(function(item) { create(item.el, item.isInView); });
     });
   });
 
