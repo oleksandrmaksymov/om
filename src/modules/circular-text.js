@@ -3,7 +3,7 @@
    Webflow: section [data-circular-text="wrap"] → Embed svg [data-circular-text="svg"] (viewBox = Figma frame,
             scales natively like the Osmo SVG; font sizes from Webflow classes in viewBox units)
             → <text data-circular-text="line" data-at="0 | 0.5"> (data-at = start, share of a line reveal).
-   Page content is pinned while the block is held, letters appear one by one (steps), scrubbed both ways. */
+   The block is pinned while the letters appear one by one (steps), scrubbed both ways. */
 
 const REVEAL_DURATION = 0.7; // stagger amount per line
 const PIN_DISTANCE = '150%';  // how long the block is held (share of the screen height)
@@ -63,9 +63,7 @@ export function initCircularTextScroll(scope) {
       trigger: state.wrap,
       start: 'bottom bottom', // block's bottom edge (line with the next block) meets the screen bottom
       end: '+=' + PIN_DISTANCE,
-      /* TEST (v81): page pin disabled — check whether the whole-page pin causes the iOS jump on Info.
-         Restore: pin: scope.querySelector('[data-circular-text="pin"]') || state.wrap, */
-      pin: false,
+      pin: true, // the circular-text block itself
       scrub: true,
     },
   });

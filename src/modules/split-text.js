@@ -30,13 +30,10 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
         };
 
         if (!isInView) {
-          /* text inside the page content pinned by circular-text: GSAP docs — pinnedContainer
-             (the pin itself is created later, in initPageLayout) */
           vars.scrollTrigger = {
             trigger: el,
             start: 'clamp(top 80%)',
             once: true,
-            pinnedContainer: el.closest('[data-circular-text="pin"]') || undefined,
           };
           vars.onComplete = function() { revealed = true; };
         }
