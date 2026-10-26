@@ -1,6 +1,5 @@
 import { addCleanup } from './core/lifecycle.js';
 import { initAxion, initAxionCard } from './modules/axion.js';
-import { initProfileCard } from './modules/profile-card.js';
 import { initLogoRevealLoader } from './modules/loader.js';
 import { initTextFitToWidth } from './modules/text-fit.js';
 import { initMaskTextScrollReveal } from './modules/split-text.js';
@@ -10,7 +9,6 @@ import { initClock } from './modules/clock.js';
 import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
-import { initWavyAccordion } from './modules/wavy-accordion.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 
 
@@ -24,14 +22,11 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
   /* Home: Axion + Loader */
   addCleanup(initAxion(container));
 
-  /* Info: circular text — split letters (pin + reveal are created in initPageLayout) */
+  /* Research: circular text — split letters (pin + reveal are created in initPageLayout) */
   addCleanup(initCircularText(container));
 
   /* Logotypes grid: square spin-only Axion card */
   addCleanup(initAxionCard(container));
-
-  /* Info: profile card — WebGL photo effect in the 1:1 custom-code block */
-  addCleanup(initProfileCard(container));
 
   const loaderWrap = document.querySelector('[data-load-wrap]');
   if (loaderWrap) {
@@ -55,7 +50,6 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
   addCleanup(initHighlightMarkerTextReveal(container));
   addCleanup(initCursorMarqueeEffect(container));
   addCleanup(initClock(container));
-  addCleanup(initWavyAccordion(container));
   initCopyEmailClipboard(container);
   playVideos(container);
 
@@ -64,7 +58,7 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
 }
 
 export function initPageLayout(container) {
-  /* Info: circular text pin needs real page layout (after the transition, scroll at top) */
+  /* Research: circular text pin needs real page layout (after the transition, scroll at top) */
   addCleanup(initCircularTextScroll(container));
 
   /* Home: Flip needs real page layout (no 3D transforms) */
