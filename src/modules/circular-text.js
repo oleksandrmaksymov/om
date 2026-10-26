@@ -63,8 +63,9 @@ export function initCircularTextScroll(scope) {
       trigger: state.wrap,
       start: 'bottom bottom', // block's bottom edge (line with the next block) meets the screen bottom
       end: '+=' + PIN_DISTANCE,
-      /* the whole page content stops while the letters appear, then the page scrolls on */
-      pin: scope.querySelector('[data-circular-text="pin"]') || state.wrap,
+      /* TEST (v81): page pin disabled — check whether the whole-page pin causes the iOS jump on Info.
+         Restore: pin: scope.querySelector('[data-circular-text="pin"]') || state.wrap, */
+      pin: false,
       scrub: true,
     },
   });

@@ -5,9 +5,9 @@ export const SPLIT_LINES = { duration: 0.8, yPercent: 110, stagger: 0.08, ease: 
 /* extraDelay: extra wait (sec) for text already on screen — e.g. while the new page fades in */
 export function initMaskTextScrollReveal(scope, extraDelay = 0) {
   const splits = [];
-  let cancelled = false;
+  scope.querySelectorAll('[data-split]').forEach(el => {
 
-  function create(el, isInView) {
+    const isInView = el.getBoundingClientRect().top < window.innerHeight;
     let revealed = false;
 
     splits.push(SplitText.create(el, {
@@ -17,7 +17,7 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
       onSplit(instance) {
         gsap.set(el, { autoAlpha: 1 });
 
-        /* Re-split after font swap / resize: only rebuild lines, don't re-animate */
+        /* Re-split after font swap: only rebuild lines, don't re-animate */
         if (revealed) return;
 
         const vars = {
@@ -44,26 +44,17 @@ export function initMaskTextScrollReveal(scope, extraDelay = 0) {
         return gsap.from(instance.lines, vars);
       }
     }));
-  }
-
-  /* Split once, after the browser has painted a frame with the web font.
-     Double rAF guarantees at least one completed paint cycle — with font-display:swap
-     (and on a restored tab) lines measured earlier use the fallback font (fixed 21.10).
-     One split → the reveal starts once and is never restarted. */
-  /* in view or not — measured now, before the page-enter animation moves the container (as before) */
-  const items = Array.from(scope.querySelectorAll('[data-split]')).map(function(el) {
-    return { el: el, isInView: el.getBoundingClientRect().top < window.innerHeight };
   });
 
+  /* Safety: force re-split after the browser has painted with the loaded font.
+     Double rAF guarantees at least one completed paint cycle —
+     if font-display:swap swapped after SplitText measured, this corrects the lines.
+     The revealed flag above prevents the animation from replaying. */
   requestAnimationFrame(function() {
     requestAnimationFrame(function() {
-      if (cancelled) return;
-      items.forEach(function(item) { create(item.el, item.isInView); });
+      splits.forEach(function(s) { s.split(); });
     });
   });
 
-  return function() {
-    cancelled = true;
-    splits.forEach(function(s) { s.revert(); });
-  };
+  return function() { splits.forEach(function(s) { s.revert(); }); };
 }
