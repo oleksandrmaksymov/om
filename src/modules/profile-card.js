@@ -2,12 +2,10 @@
    PROFILE CARD — square WebGL2 photo effect (Info page)
    Webflow: <div id="profile-card" style="width:100%;height:100%;position:relative;"></div>
             inside the 1:1 custom-code block.
-   Matches the "om-2" scene 1:1 (same parameters, same render pipeline):
+   Based on the "om-2" scene (same blur / duotone / render pipeline):
      pass 1 (half resolution): photo on black → noise blur (blur direction from animated noise derivatives)
-     pass 2 (full resolution): vertical pixel stripes (stripe under the cursor widens) → duotone + overlay
-   Hover (mouse only): a sharp window over the cursor shows the real photo 1:1 (duotone, no blur / pixels).
-   Canvas = block size × dpi (max 1.5), 60 fps, cursor tracked on the whole window with momentum.
-   Touch devices: no reaction to taps — the image just floats.
+     pass 2 (full resolution): exactly STRIPES vertical pixel stripes (edges always on stripe borders) → duotone + overlay
+   Canvas = block size × dpi (max 1.5), 60 fps. No cursor / touch reaction — the image just floats.
    Rendering pauses off-screen; cleanup frees the WebGL context (Barba).
    ====================================================== */
 
@@ -16,10 +14,12 @@ const IMAGE_SRC = 'https://cdn.prod.website-files.com/609cc71571f11228bb986695/6
 const FPS = 60;
 const DPI = Math.min(1.5, window.devicePixelRatio || 1);
 const BLUR_DOWNSAMPLE = 0.5;   // blur pass resolution
-const BLUR_SPEED = 0.22;       // time step per frame at 60 fps
-const MOUSE_MOMENTUM = 0.5;    // cursor inertia: each frame closes 1/2^(2·momentum+1) of the gap (= 25%)
-const WINDOW_WIDTH = 0.1;      // real-photo window width, share of the card width
-const WINDOW_FADE = 0.3;       // window fade in / out on hover, seconds (site default 0.3s ease)
+const BLUR_SPEED = 0.26;       // scene "speed": time step per frame at 60 fps
+const BLUR_AMOUNT = 0.59;      // scene "amount": blur length
+const BLUR_SCALE = 0.15;       // scene "scale": noise field size
+const BLUR_SKEW = 0.8;         // scene "skew": noise stretched along x (0.5 = even)
+const BLUR_ANGLE = 0.3139;     // scene "angle": noise field rotation, turns
+const STRIPES = 20;            // stripes across the card (grid starts at the edge → no cut stripes)
 
 const VERT = `#version 300 es
 in vec2 aPos;
@@ -38,6 +38,10 @@ uniform sampler2D uImage;
 uniform vec2 uImageSize;
 uniform vec2 uResolution;
 uniform float uTime;
+uniform float uAmount;
+uniform float uScale;
+uniform float uSkew;
+uniform float uAngle;
 
 /* OpenSimplex2 (BCC lattice) noise with derivatives — based on K.jpg (KdotJPG), public domain
    https://github.com/KdotJPG/OpenSimplex2 */
@@ -100,12 +104,14 @@ vec3 photo(vec2 uv) {
   return c.rgb * c.a * c.a;
 }
 
+mat2 rot(float a) { return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+
 void main() {
-  vec2 dir = vec2(0.5, 0.5) * (5.0 * 0.26);
+  vec2 dir = vec2(uSkew, 1.0 - uSkew) * (5.0 * uScale);
   vec2 aspect = vec2(uResolution.x / uResolution.y, 1.0);
-  vec2 noiseUv = (vUv * aspect - 0.5 * aspect) * dir;
+  vec2 noiseUv = rot(uAngle * -6.28318530718) * (vUv * aspect - 0.5 * aspect) * dir;
   vec4 noise = bccNoiseDerivatives_XYBeforeZ(vec3(noiseUv, uTime * 0.025));
-  vec2 offset = (noise.xy - 0.5) * (0.33 + 0.01) * 0.25;
+  vec2 offset = (noise.xy - 0.5) * (uAmount + 0.01) * 0.25;
   float jitter = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - 0.5;
   vec3 color = vec3(0.0);
   for (int i = 0; i < 12; i++) {
@@ -121,44 +127,11 @@ precision highp float;
 in vec2 vUv;
 out vec4 fragColor;
 uniform sampler2D uBlur;
-uniform sampler2D uImage;
-uniform vec2 uImageSize;
-uniform vec2 uResolution;
-uniform vec2 uMousePos;
-uniform float uWindow;   // window width
-uniform float uHover;    // 0 → 1 window visibility
+uniform float uStripes;
 
-/* real photo, cover-fit (same as pass 1) */
-vec3 photo(vec2 uv) {
-  float imageAspect = uImageSize.x / uImageSize.y;
-  float canvasAspect = uResolution.x / uResolution.y;
-  vec2 fit = canvasAspect < imageAspect
-    ? vec2(imageAspect / canvasAspect, 1.0)
-    : vec2(1.0, canvasAspect / imageAspect);
-  vec4 c = texture(uImage, (uv - 0.5) / fit + 0.5);
-  return c.rgb * c.a * c.a;
-}
-
+/* each stripe shows the color of its center column; the grid starts at the card edge */
 vec2 stripes(vec2 uv) {
-  vec2 pos = vec2(0.5);
-  float aspectRatio = uResolution.x / uResolution.y;
-  float gridSize = (0.15 + 0.01) * 0.083;
-  float baseGrid = 1.0 / gridSize;
-  vec2 cellSize = vec2(1.0 / (baseGrid * aspectRatio), 1.0 / baseGrid) * mix(aspectRatio, 1.0 / aspectRatio, 0.5);
-  float skew = (0.63 - 0.5) * 4.0;
-  cellSize *= vec2(1.0 + max(skew, 0.0), 1.0 + max(-skew, 0.0));
-  vec2 o = uv - pos;
-  float w = cellSize.x;
-  float xm = (floor((uMousePos.x - pos.x) / w) + 0.5) * w;
-  float h = w * 0.5;
-  float mult = 1.0 + 0.6 * 5.0;
-  float H = h * mult;
-  float dx = o.x - xm;
-  float adx = abs(dx);
-  o.x = xm + (adx <= H ? dx / mult : sign(dx) * (h + (adx - H)));
-  vec2 cell = floor(o / cellSize);
-  vec2 p = (cell + 0.5) * cellSize + pos;
-  return vec2(p.x, uv.y);
+  return vec2((floor(uv.x * uStripes) + 0.5) / uStripes, uv.y);
 }
 
 vec3 duotone(vec3 c) {
@@ -172,9 +145,6 @@ vec3 duotone(vec3 c) {
 
 void main() {
   vec3 color = texture(uBlur, stripes(vUv)).rgb;
-  /* sharp window centered on the (smoothed) cursor */
-  float inWindow = step(abs(vUv.x - uMousePos.x), uWindow * 0.5);
-  color = mix(color, photo(vUv), inWindow * uHover);
   fragColor = vec4(duotone(color), 1.0);
 }`;
 
@@ -234,15 +204,14 @@ export function runProfileCard(container) {
     imageSize: gl.getUniformLocation(blurProgram, 'uImageSize'),
     resolution: gl.getUniformLocation(blurProgram, 'uResolution'),
     time: gl.getUniformLocation(blurProgram, 'uTime'),
+    amount: gl.getUniformLocation(blurProgram, 'uAmount'),
+    scale: gl.getUniformLocation(blurProgram, 'uScale'),
+    skew: gl.getUniformLocation(blurProgram, 'uSkew'),
+    angle: gl.getUniformLocation(blurProgram, 'uAngle'),
   };
   const uf = {
     blur: gl.getUniformLocation(finalProgram, 'uBlur'),
-    resolution: gl.getUniformLocation(finalProgram, 'uResolution'),
-    mouse: gl.getUniformLocation(finalProgram, 'uMousePos'),
-    image: gl.getUniformLocation(finalProgram, 'uImage'),
-    imageSize: gl.getUniformLocation(finalProgram, 'uImageSize'),
-    window: gl.getUniformLocation(finalProgram, 'uWindow'),
-    hover: gl.getUniformLocation(finalProgram, 'uHover'),
+    stripes: gl.getUniformLocation(finalProgram, 'uStripes'),
   };
 
   /* fullscreen triangle */
@@ -290,36 +259,6 @@ export function runProfileCard(container) {
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(container);
 
-  /* cursor (mouse only): position relative to the card, tracked on the whole window (not clamped),
-     center until the first move; momentum — each frame closes 25% of the gap.
-     Touch devices: no listeners — the stripes stay centered, the image just floats. */
-  let targetX = 0.5, targetY = 0.5;
-  let mouseX = 0.5, mouseY = 0.5;
-  let hovering = false;
-  let hover = 0;
-  const hasMouse = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  function onMove(e) {
-    const r = container.getBoundingClientRect();
-    targetX = (e.clientX - r.left) / r.width;
-    targetY = 1 - (e.clientY - r.top) / r.height;
-  }
-  function onEnter(e) {
-    hovering = true;
-    /* window starts right under the cursor, not sliding in from the old position */
-    onMove(e);
-    mouseX = targetX;
-    mouseY = targetY;
-  }
-  function onLeave() { hovering = false; }
-  if (hasMouse) {
-    window.addEventListener('mousemove', onMove, { passive: true });
-    container.addEventListener('mouseenter', onEnter);
-    container.addEventListener('mouseleave', onLeave);
-  }
-  const ease = Math.pow(0.5, 2 * MOUSE_MOMENTUM + 1);
-  /* CSS "ease" ≈ smoothstep for the fade */
-  function easeFade(t) { return t * t * (3 - 2 * t); }
-
   /* render only while visible (like Axion card) */
   let visible = true;
   const observer = new IntersectionObserver(function(entries) {
@@ -337,9 +276,6 @@ export function runProfileCard(container) {
     last = now;
 
     time += BLUR_SPEED;
-    mouseX += (targetX - mouseX) * ease;
-    mouseY += (targetY - mouseY) * ease;
-    hover = Math.min(1, Math.max(0, hover + (hovering ? 1 : -1) / (FPS * WINDOW_FADE)));
 
     /* pass 1 → half-res target */
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
@@ -351,6 +287,10 @@ export function runProfileCard(container) {
     gl.uniform2f(ub.imageSize, imageW, imageH);
     gl.uniform2f(ub.resolution, width, height);
     gl.uniform1f(ub.time, time);
+    gl.uniform1f(ub.amount, BLUR_AMOUNT);
+    gl.uniform1f(ub.scale, BLUR_SCALE);
+    gl.uniform1f(ub.skew, BLUR_SKEW);
+    gl.uniform1f(ub.angle, BLUR_ANGLE);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
     /* pass 2 → screen */
@@ -359,15 +299,7 @@ export function runProfileCard(container) {
     gl.useProgram(finalProgram);
     gl.bindTexture(gl.TEXTURE_2D, blurTex);
     gl.uniform1i(uf.blur, 0);
-    gl.uniform2f(uf.resolution, width, height);
-    gl.uniform2f(uf.mouse, mouseX, mouseY);
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, imageTex);
-    gl.uniform1i(uf.image, 1);
-    gl.uniform2f(uf.imageSize, imageW, imageH);
-    gl.uniform1f(uf.window, WINDOW_WIDTH);
-    gl.uniform1f(uf.hover, easeFade(hover));
-    gl.activeTexture(gl.TEXTURE0);
+    gl.uniform1f(uf.stripes, STRIPES);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
   rafId = requestAnimationFrame(frame);
@@ -377,9 +309,6 @@ export function runProfileCard(container) {
     cancelAnimationFrame(rafId);
     observer.disconnect();
     resizeObserver.disconnect();
-    window.removeEventListener('mousemove', onMove);
-    container.removeEventListener('mouseenter', onEnter);
-    container.removeEventListener('mouseleave', onLeave);
     gl.deleteTexture(imageTex);
     gl.deleteTexture(blurTex);
     gl.deleteFramebuffer(fbo);
