@@ -10,7 +10,7 @@ import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
-import { initCubeScroll } from './modules/cube-scroll.js';
+import { initCubeGL } from './modules/cube-gl.js';
 
 
 /* ======================================================
@@ -62,8 +62,8 @@ export function initPageLayout(container) {
   /* Research: circular text pin needs real page layout (after the transition, scroll at top) */
   addCleanup(initCircularTextScroll(container));
 
-  /* Info: cube turns with page scroll — after the transition, scroll at top */
-  addCleanup(initCubeScroll(container));
+  /* Info: WebGL cube turns on the first half screen of scroll — after the transition, scroll at top */
+  addCleanup(initCubeGL(container));
 
   /* Home: Flip needs real page layout (no 3D transforms) */
   if (container.querySelector('[data-flip-element]') && window.innerWidth > 991) {
