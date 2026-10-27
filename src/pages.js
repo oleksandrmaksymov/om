@@ -10,7 +10,7 @@ import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
-import { initCubeGL } from './modules/cube-gl.js';
+import { initCubeGL, initCubeGLScroll } from './modules/cube-gl.js';
 
 
 /* ======================================================
@@ -28,6 +28,9 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
 
   /* Logotypes grid: square spin-only Axion card */
   addCleanup(initAxionCard(container));
+
+  /* Info: WebGL cube — drawn now, so it is there when the page comes in (scroll turn in initPageLayout) */
+  addCleanup(initCubeGL(container));
 
   const loaderWrap = document.querySelector('[data-load-wrap]');
   if (loaderWrap) {
@@ -62,8 +65,8 @@ export function initPageLayout(container) {
   /* Research: circular text pin needs real page layout (after the transition, scroll at top) */
   addCleanup(initCircularTextScroll(container));
 
-  /* Info: WebGL cube turns on the first half screen of scroll — after the transition, scroll at top */
-  addCleanup(initCubeGL(container));
+  /* Info: WebGL cube scroll turn — after the transition, scroll at top */
+  addCleanup(initCubeGLScroll(container));
 
   /* Home: Flip needs real page layout (no 3D transforms) */
   if (container.querySelector('[data-flip-element]') && window.innerWidth > 991) {

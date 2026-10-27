@@ -6,7 +6,10 @@
    One 90° turn over the first half screen of page scroll (ScrollTrigger scrub):
    M goes up, the bottom face (O) comes to the front; scrolling back turns it back.
    Draws only when the turn or the size changes — no render loop.
-   Init after the page transition (initPageLayout) — scroll is at the top by then.
+   Two stages (like circular text):
+   initCubeGL — content stage (before the page transition): the cube is drawn at rest, so it is
+                already there when the page comes in;
+   initCubeGLScroll — layout stage (after the transition, scroll at the top): the scroll turn.
    ====================================================== */
 const TURN_DISTANCE = '+=50%';  // scroll for the 90° turn: half the screen height
 const PERSPECTIVE = 100 / 15;   // camera distance / cube size (CSS example: perspective 100em, cube 15em)
@@ -94,6 +97,9 @@ function drawFace(ctx, size, path, w, h) {
   ctx.fill(new Path2D(path));
   ctx.restore();
 }
+
+/* cube per page container (content stage → layout stage) */
+const cubes = new WeakMap();
 
 export function initCubeGL(scope) {
   const wrap = scope.querySelector('[data-cube-gl]');
@@ -193,21 +199,19 @@ export function initCubeGL(scope) {
     render();
   }
 
-  const turn = ScrollTrigger.create({
-    start: 0,
-    end: TURN_DISTANCE,
-    onUpdate: function(self) {
-      angle = -self.progress * Math.PI / 2;
-      render();
-    },
-  });
+  /* turn: 0 = front face (M), 1 = bottom face (O) in front */
+  function setTurn(progress) {
+    angle = -progress * Math.PI / 2;
+    render();
+  }
 
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(wrap);
   resize();
+  cubes.set(scope, { setTurn: setTurn });
 
   return function() {
-    turn.kill();
+    cubes.delete(scope);
     resizeObserver.disconnect();
     gl.deleteTexture(texture);
     buffers.forEach(function(buf) { gl.deleteBuffer(buf); });
@@ -217,4 +221,16 @@ export function initCubeGL(scope) {
     if (lose) lose.loseContext();
     canvas.remove();
   };
+}
+
+/* Layout stage: one 90° turn over the first half screen of page scroll (scrubbed both ways) */
+export function initCubeGLScroll(scope) {
+  const cube = cubes.get(scope);
+  if (!cube) return;
+  const turn = ScrollTrigger.create({
+    start: 0,
+    end: TURN_DISTANCE,
+    onUpdate: function(self) { cube.setTurn(self.progress); },
+  });
+  return function() { turn.kill(); };
 }
