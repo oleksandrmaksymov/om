@@ -4,6 +4,7 @@ import { initLogoRevealLoader } from './modules/loader.js';
 import { initTextFitToWidth } from './modules/text-fit.js';
 import { initMaskTextScrollReveal } from './modules/split-text.js';
 import { initHighlightMarkerTextReveal } from './modules/highlight-marker.js';
+import { initServicesReveal } from './modules/services-reveal.js';
 import { initCursorMarqueeEffect } from './modules/cursor-marquee.js';
 import { initClock } from './modules/clock.js';
 import { initCopyEmailClipboard } from './modules/copy-email.js';
@@ -48,6 +49,7 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
   /* Shared */
   if (!splitHandled) addCleanup(initMaskTextScrollReveal(container, textDelay));
   addCleanup(initHighlightMarkerTextReveal(container));
+  addCleanup(initServicesReveal(container));
   addCleanup(initCursorMarqueeEffect(container));
   addCleanup(initClock(container));
   initCopyEmailClipboard(container);
