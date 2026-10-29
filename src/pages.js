@@ -10,6 +10,7 @@ import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
+import { initScatterText } from './modules/scatter-text.js';
 
 
 /* ======================================================
@@ -65,4 +66,7 @@ export function initPageLayout(container) {
   if (container.querySelector('[data-flip-element]') && window.innerWidth > 991) {
     addCleanup(initFlipOnScroll(container));
   }
+
+  /* Info: scatter text ([data-scatter] → [data-scatter-target]) — measures real layout */
+  addCleanup(initScatterText(container));
 }
