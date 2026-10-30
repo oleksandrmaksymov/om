@@ -7,8 +7,10 @@
      .mini-showreel-lightbox[data-mini-showreel-lightbox="reel"][data-mini-showreel-status="not-active"]
          → .mini-showreel-lightbox__dark[data-mini-showreel-close]
          → .mini-showreel-lightbox__safearea[data-mini-showreel-safearea] → .mini-showreel-lightbox__target[data-mini-showreel-target]
-   Osmo logic and settings unchanged (Flip, duration 1, expo.inOut, z-index 999, safearea fit, Esc / dark closes).
+   Osmo logic unchanged (Flip, z-index 999, safearea fit, Esc / dark closes).
    Site adaptations:
+   — timing = page transition (core/motion.js): PAGE_DURATION, PAGE_EASE; the dark overlay
+     darkens like the leaving page: black, autoAlpha 0 → PAGE_DARK, same duration / ease (GSAP);
    — the reel lives in the pinned .profile (ScrollTrigger pin sets a transform on it, so position: fixed inside
      would be relative to it); while open the player is moved into the lightbox (outside the pin), Osmo then
      places it with position: fixed exactly as in the original; on close it flies back with Flip.fit to its
@@ -20,6 +22,7 @@
    ====================================================== */
 import { loadScript } from '../core/load-script.js';
 import { lenis } from '../core/setup.js';
+import { PAGE_EASE, PAGE_DURATION, PAGE_DARK } from '../core/motion.js';
 import { runBunnyPlayer } from './bunny-player.js';
 
 const HLS_SRC = 'https://cdn.jsdelivr.net/npm/hls.js@1.6.11';
@@ -49,13 +52,13 @@ export function initShowreel(scope) {
 function runMiniShowreel(scope) {
   if (!scope.querySelector('[data-mini-showreel-open]')) return function() {};
 
-  // Settings (Osmo)
-  var duration = 1;
-  var ease = "expo.inOut";
+  // Settings (Osmo; timing = page transition)
+  var duration = PAGE_DURATION;
+  var ease = PAGE_EASE;
   var zIndex = 999;
 
   let n = "", isOpen = false;
-  let lb, pw, tg, slot, slotNext, tween;
+  let lb, pw, tg, dark, slot, slotNext, tween;
   let pwCss = "", lbZ = "", pwZ = "";
 
   const q = (sel, root = scope) => root.querySelector(sel);
@@ -147,7 +150,7 @@ function runMiniShowreel(scope) {
     zOff();
     n = "";
     isOpen = false;
-    lb = pw = tg = slot = slotNext = tween = null;
+    lb = pw = tg = dark = slot = slotNext = tween = null;
     pwCss = "";
     lbZ = "";
     pwZ = "";
@@ -163,6 +166,7 @@ function runMiniShowreel(scope) {
 
     tg = q("[data-mini-showreel-target]", lb);
     if (!tg) return;
+    dark = q("[data-mini-showreel-close]", lb);
 
     n = name;
     isOpen = true;
@@ -188,6 +192,8 @@ function runMiniShowreel(scope) {
       absolute: true,
       scale: false
     });
+    /* site: darkening as in the page transition */
+    if (dark) gsap.to(dark, { autoAlpha: PAGE_DARK, duration: duration, ease: ease, overwrite: true });
   }
 
   function closeBy(nameOrEmpty) {
@@ -198,6 +204,7 @@ function runMiniShowreel(scope) {
     setStatus("not-active");
 
     if (tween) tween.kill();
+    if (dark) gsap.to(dark, { autoAlpha: 0, duration: duration, ease: ease, overwrite: true });
     /* site: fly back above the fading dark, into the slot's place; then back into the slot */
     tween = Flip.fit(pw, slot, {
       duration: duration,
@@ -215,6 +222,7 @@ function runMiniShowreel(scope) {
   function closeNow() {
     if (!isOpen || !pw) return;
     if (tween) tween.kill();
+    if (dark) { gsap.killTweensOf(dark); gsap.set(dark, { autoAlpha: 0 }); }
     previewFor(n);
     setStatus("not-active");
     slot.insertBefore(pw, slotNext);

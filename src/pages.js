@@ -79,6 +79,6 @@ export function initPageLayout(container) {
   /* Info: scatter text ([data-scatter] → [data-scatter-target]) — measures real layout */
   addCleanup(initScatterText(container));
 
-  /* Info: reel block stays on screen until the footer (≥768px) — real layout, scroll at top */
+  /* Info: reel block stays on screen until system-chaos (≥768px) — real layout, scroll at top */
   addCleanup(initProfilePin(container));
 }
