@@ -1,10 +1,11 @@
 /* ======================================================
    WORD ORBIT — words on a 3D orbit + cursor push
    Rebuilt 1:1 from the Cavalry scene info-1.cv (comp 1920×2400, 30 fps, seamless loop).
-   Webflow: block (aspect-ratio 4/5, background, text color, font) → Embed with
+   Webflow: block (aspect-ratio 4/5, font) → Embed with
      <div id="word-orbit-light" style="width:100%;height:100%;position:relative;"></div>  — Duplicator Point ×55
      <div id="word-orbit-dark" style="width:100%;height:100%;position:relative;"></div>   — Duplicator Random, rect 500×500, ×50, seed 1000
-   Background = block background (canvas is transparent); words take the text color and font the div inherits from the block.
+   Colors come from the scene (LAYOUTS below): light = bg #BBC0C8 / words #FFFFFF, dark = bg #000000 / words #BBC0C8.
+   Background is the canvas CSS background (no per-frame fill); font = the font the div inherits from the block.
    Orbit: 3D Matrix driven by 2 oscillators (X sine −900…900, Z cosine −180…900),
           layer at (−429.263, 125.907) rotated 70°, words counter-rotated → always horizontal.
    Depth of field: words sharp in front, defocused at the back (Gaussian 16), fixed in the frame.
@@ -39,8 +40,8 @@ const FOCUS_END = 0.65;                       // depth where defocus is full
 const STATIC_FRAME = 134;                     // frame shown with reduced motion
 
 const LAYOUTS = {
-  point: { count: 55 },
-  random: { count: 50, size: 500, seed: 1000 },
+  point: { count: 55, background: '#BBC0C8', color: '#FFFFFF' },                 // light
+  random: { count: 50, size: 500, seed: 1000, background: '#000000', color: '#BBC0C8' },  // dark
 };
 
 /* ———— cursor (comp px) ———— */
@@ -104,7 +105,7 @@ function runWordOrbit(block, layout) {
 
   const canvas = document.createElement('canvas');
   canvas.setAttribute('aria-hidden', 'true');
-  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;';
+  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;background:' + layout.background + ';';
   block.appendChild(canvas);
   const ctx = canvas.getContext('2d');
 
@@ -130,7 +131,7 @@ function runWordOrbit(block, layout) {
 
   function buildSprites() {
     const style = getComputedStyle(block);
-    const color = style.color;
+    const color = layout.color;
     const font = (style.fontStyle || 'normal') + ' ' + (style.fontWeight || '400') + ' ';
     const family = style.fontFamily;
     spriteScale = S_MAX * k * dpr;
