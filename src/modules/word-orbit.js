@@ -1,11 +1,10 @@
 /* ======================================================
    WORD ORBIT — words on a 3D orbit + cursor push
    Rebuilt 1:1 from the Cavalry scene info-1.cv (comp 1920×2400, 30 fps, seamless loop).
-   Webflow: any block [data-word-orbit="point" | "random"] (position: relative; aspect-ratio 4/5 recommended).
-     point  — Duplicator Point ×55 (light variant)
-     random — Duplicator Random, rectangle 500×500, ×50, seed 1000 (dark variant)
-   Colors and font come from the block in Webflow: background = block background,
-   words = block text color, font family / weight = block font.
+   Webflow: block (aspect-ratio 4/5, background, text color, font) → Embed with
+     <div id="word-orbit-light" style="width:100%;height:100%;position:relative;"></div>  — Duplicator Point ×55
+     <div id="word-orbit-dark" style="width:100%;height:100%;position:relative;"></div>   — Duplicator Random, rect 500×500, ×50, seed 1000
+   Background = block background (canvas is transparent); words take the text color and font the div inherits from the block.
    Orbit: 3D Matrix driven by 2 oscillators (X sine −900…900, Z cosine −180…900),
           layer at (−429.263, 125.907) rotated 70°, words counter-rotated → always horizontal.
    Depth of field: words sharp in front, defocused at the back (Gaussian 16), fixed in the frame.
@@ -100,8 +99,7 @@ function gaussianBlur(alpha, w, h, sigma) {
   for (let p = 0; p < 3; p++) boxBlur(alpha, tmp, w, h, r);
 }
 
-function runWordOrbit(block) {
-  const layout = LAYOUTS[block.getAttribute('data-word-orbit')] || LAYOUTS.point;
+function runWordOrbit(block, layout) {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const canvas = document.createElement('canvas');
@@ -376,10 +374,12 @@ function runWordOrbit(block) {
   };
 }
 
-/* ———— Word Orbit — any page, one or more blocks ———— */
+/* ———— Word Orbit — #word-orbit-light (Point) / #word-orbit-dark (Random), any page ———— */
 export function initWordOrbit(scope) {
-  const blocks = scope.querySelectorAll('[data-word-orbit]');
-  if (!blocks.length) return function() {};
-  const cleanups = Array.from(blocks).map(runWordOrbit);
+  const cleanups = [];
+  const light = scope.querySelector('#word-orbit-light');
+  const dark = scope.querySelector('#word-orbit-dark');
+  if (light) cleanups.push(runWordOrbit(light, LAYOUTS.point));
+  if (dark) cleanups.push(runWordOrbit(dark, LAYOUTS.random));
   return function() { cleanups.forEach(function(fn) { fn(); }); };
 }

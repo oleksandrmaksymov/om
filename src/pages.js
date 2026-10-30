@@ -30,7 +30,7 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
   /* Logotypes grid: square spin-only Axion card */
   addCleanup(initAxionCard(container));
 
-  /* Word orbit (Cavalry info-1): [data-word-orbit="point|random"] — drawn now, so it is there when the page comes in */
+  /* Word orbit (Cavalry info-1): Embed #word-orbit-light / #word-orbit-dark — drawn now, so it is there when the page comes in */
   addCleanup(initWordOrbit(container));
 
   const loaderWrap = document.querySelector('[data-load-wrap]');
