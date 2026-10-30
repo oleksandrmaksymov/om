@@ -11,7 +11,6 @@ import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 import { initScatterText } from './modules/scatter-text.js';
-import { initWordOrbit } from './modules/word-orbit.js';
 import { initProfilePin } from './modules/profile-pin.js';
 import { initShowreel } from './modules/showreel.js';
 
@@ -34,9 +33,6 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
 
   /* Info: profile reel — Osmo Mini Showreel + Bunny HLS Player (preview plays before the page comes in) */
   addCleanup(initShowreel(container));
-
-  /* Word orbit (Cavalry info-1): Embed #word-orbit-light / #word-orbit-dark — drawn now, so it is there when the page comes in */
-  addCleanup(initWordOrbit(container));
 
   const loaderWrap = document.querySelector('[data-load-wrap]');
   if (loaderWrap) {
