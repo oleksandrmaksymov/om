@@ -11,6 +11,7 @@ import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 import { initScatterText } from './modules/scatter-text.js';
+import { initWordOrbit } from './modules/word-orbit.js';
 
 
 /* ======================================================
@@ -28,6 +29,9 @@ export function initPageContent(container, isFirstLoad, textDelay = 0) {
 
   /* Logotypes grid: square spin-only Axion card */
   addCleanup(initAxionCard(container));
+
+  /* Word orbit (Cavalry info-1): [data-word-orbit="point|random"] — drawn now, so it is there when the page comes in */
+  addCleanup(initWordOrbit(container));
 
   const loaderWrap = document.querySelector('[data-load-wrap]');
   if (loaderWrap) {
