@@ -12,6 +12,7 @@ import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 import { initScatterText } from './modules/scatter-text.js';
 import { initWordOrbit } from './modules/word-orbit.js';
+import { initProfilePin } from './modules/profile-pin.js';
 
 
 /* ======================================================
@@ -73,4 +74,7 @@ export function initPageLayout(container) {
 
   /* Info: scatter text ([data-scatter] → [data-scatter-target]) — measures real layout */
   addCleanup(initScatterText(container));
+
+  /* Info: reel block stays on screen until the footer (≥768px) — real layout, scroll at top */
+  addCleanup(initProfilePin(container));
 }
