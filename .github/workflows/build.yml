@@ -36,7 +36,10 @@ jobs:
 
       - name: Tag version
         run: |
-          TAG="v${{ github.run_number }}"
+          git fetch --tags
+          LAST=$(git tag -l 'v[0-9]*' | sed 's/^v//' | sort -n | tail -1)
+          NEXT=$(( ${LAST:-0} + 1 ))
+          TAG="v$NEXT"
           git tag "$TAG"
           git push origin "$TAG"
           {
