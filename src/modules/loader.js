@@ -1,0 +1,61 @@
+import { lenis } from '../core/setup.js';
+import { PAGE_EASE, PAGE_DURATION } from '../core/motion.js';
+
+/* ———— Logo Reveal Loader ———— */
+export function initLogoRevealLoader(container) {
+  const wrap = document.querySelector('[data-load-wrap]');
+  if (!wrap) return null;
+
+  lenis.stop();
+
+  const bg = wrap.querySelector('[data-load-bg]');
+  const progressBar = wrap.querySelector('[data-load-progress]');
+  const logo = wrap.querySelector('[data-load-logo]');
+  const textElements = Array.from(wrap.querySelectorAll('[data-load-text]'));
+
+  const resetTargets = Array.from(wrap.querySelectorAll('[data-load-reset]:not([data-load-text])'));
+
+  const loadTimeline = gsap
+    .timeline({
+      defaults: {
+        ease: 'loader',
+        duration: 3,
+      },
+    })
+    .set(wrap, { display: 'block' })
+    .to(progressBar, { scaleX: 1 })
+    .to(logo, { clipPath: 'inset(0% 0% 0% 0%)' }, '<')
+    .to(wrap.querySelector('.loader__text-wrap'), { autoAlpha: 0, duration: 0.5 })
+    .to(progressBar, { scaleX: 0, transformOrigin: 'right center', duration: 0.5 }, '<')
+    .add('hideContent', '<')
+    /* Loader folds up from the bottom (clip-path, like the mobile menu curtain):
+       content stays in place, so the white logo stays where the nav logo is and
+       is cut off by the edge at the very end. Same speed and ease as the page
+       transition; the page enter is added at 'hideContent' by main.js (Barba once)
+       from the loader's height, so the edges meet. */
+    .fromTo(wrap,
+      { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' },
+      { clipPath: 'polygon(0% 0%, 100% 0%, 100% 0%, 0% 0%)', duration: PAGE_DURATION, ease: PAGE_EASE },
+      'hideContent')
+    .set(wrap, { display: 'none' })
+    .call(() => { sessionStorage.setItem('visited', '1'); });
+
+  if (resetTargets.length) {
+    loadTimeline.set(resetTargets, { autoAlpha: 1 }, 0);
+  }
+
+  if (textElements.length >= 2) {
+    const firstWord = new SplitText(textElements[0], { type: 'lines,chars', mask: 'lines' });
+    const secondWord = new SplitText(textElements[1], { type: 'lines,chars', mask: 'lines' });
+
+    gsap.set([firstWord.chars, secondWord.chars], { autoAlpha: 0, yPercent: 125 });
+    gsap.set(textElements, { autoAlpha: 1 });
+
+    loadTimeline.to(firstWord.chars, { autoAlpha: 1, yPercent: 0, duration: 0.6, stagger: { each: 0.02 } }, 0);
+    loadTimeline.to(firstWord.chars, { autoAlpha: 0, yPercent: -125, duration: 0.4, stagger: { each: 0.02 } }, '>+=0.4');
+    loadTimeline.to(secondWord.chars, { autoAlpha: 1, yPercent: 0, duration: 0.6, stagger: { each: 0.02 } }, '<');
+    loadTimeline.to(secondWord.chars, { autoAlpha: 0, yPercent: -125, duration: 0.4, stagger: { each: 0.02 } }, 'hideContent-=0.5');
+  }
+
+  return loadTimeline;
+}

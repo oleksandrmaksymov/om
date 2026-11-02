@@ -1,0 +1,49 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Commit dist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dist
+          git diff --cached --quiet || git commit -m "build: update dist [skip ci]"
+          git push
+
+      - name: Tag version
+        run: |
+          TAG="v${{ github.run_number }}"
+          git tag "$TAG"
+          git push origin "$TAG"
+          {
+            echo "## $TAG"
+            echo ""
+            echo "Webflow → Site Settings → Footer:"
+            echo '```html'
+            echo "<script src=\"https://cdn.jsdelivr.net/gh/${{ github.repository }}@$TAG/dist/app.js\"></script>"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
