@@ -28,7 +28,7 @@ export function runBunnyPlayer(scope) {
 
     // Bunny Stream: use the CDN thumbnail as poster so the video area
     // is never blank while HLS attaches (no separate placeholder element needed)
-    var posterUrl = src.replace(/\/playlist\.m3u8$/, '/thumbnail.jpg');
+    var posterUrl = src.replace(/\/playlist\.m3u8$/, '/thumbnail.jpg?time=0');
     if (!video.getAttribute('poster')) video.setAttribute('poster', posterUrl);
 
     // Attribute helpers
@@ -351,6 +351,10 @@ export function runBunnyPlayer(scope) {
       }, { threshold: 0.1 });
 
       io.observe(player);
+
+      // Barba/SPA transitions: IO first callback may fire while the
+      // element is still mid-transition; re-observe so IO re-evaluates
+      setTimeout(function() { io.unobserve(player); io.observe(player); }, 600);
     }
 
     /* site: page cleanup for this player */
