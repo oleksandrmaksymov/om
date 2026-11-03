@@ -26,6 +26,11 @@ export function runBunnyPlayer(scope) {
     try { video.pause(); } catch(_) {}
     try { video.removeAttribute('src'); video.load(); } catch(_) {}
 
+    // Bunny Stream: use the CDN thumbnail as poster so the video area
+    // is never blank while HLS attaches (no separate placeholder element needed)
+    var posterUrl = src.replace(/\/playlist\.m3u8$/, '/thumbnail.jpg');
+    if (!video.getAttribute('poster')) video.setAttribute('poster', posterUrl);
+
     // Attribute helpers
     function setStatus(s) {
       if (player.getAttribute('data-player-status') !== s) {
