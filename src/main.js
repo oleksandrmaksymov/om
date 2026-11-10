@@ -62,10 +62,10 @@ const pageTransition = {
       closeMenuCurtain();
       menuWasOpen = false;
     }
-    return runPageEnterAnimation(data.next.container, function(container) {
-      resetPage(container);
-      addCleanup(initMaskTextScrollReveal(container));
-    });
+    /* Text reveal starts in parallel with the slide-up so it's
+       already visible by the time the curtain leaves */
+    addCleanup(initMaskTextScrollReveal(data.next.container));
+    return runPageEnterAnimation(data.next.container, resetPage);
   },
 
   afterLeave() {
@@ -117,18 +117,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (loaderTl) {
           loaderTl.call(function() {
             const loaderBg = document.querySelector('[data-load-bg]');
+            addCleanup(initMaskTextScrollReveal(next));
             runPageOnceAnimation(next, function(container) {
               resetPage(container);
-              addCleanup(initMaskTextScrollReveal(container));
               lenis.start();
               ScrollTrigger.refresh();
             }, loaderBg ? loaderBg.offsetHeight : undefined);
           }, null, 'hideContent');
         } else {
           lenis.stop();
+          addCleanup(initMaskTextScrollReveal(next));
           runPageOnceAnimation(next, function(container) {
             resetPage(container);
-            addCleanup(initMaskTextScrollReveal(container));
             lenis.start();
             ScrollTrigger.refresh();
           });
