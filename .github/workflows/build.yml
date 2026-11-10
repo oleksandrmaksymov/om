@@ -37,9 +37,9 @@ jobs:
       - name: Tag version
         run: |
           git fetch --tags
-          LAST=$(git tag -l 'v[0-9]*' | sed 's/^v//' | sort -n | tail -1)
+          LAST=$(git tag -l 'm[0-9]*' | sed 's/^m//' | sort -n | tail -1)
           NEXT=$(( ${LAST:-0} + 1 ))
-          TAG="v$NEXT"
+          TAG="m$NEXT"
           git tag "$TAG"
           git push origin "$TAG"
           {
