@@ -10,7 +10,7 @@ import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 import { initScatterText } from './modules/scatter-text.js';
-
+import { initClickToZoom } from './modules/click-zoom.js';
 
 
 /* ======================================================
@@ -32,6 +32,9 @@ export function initPageContent(container, isFirstLoad) {
 
   /* Logotypes grid: square spin-only Axion card */
   addCleanup(initAxionCard(container));
+
+  /* Info: click-to-zoom video (osmo Click to Zoom Basic) */
+  addCleanup(initClickToZoom(container));
 
   const loaderWrap = document.querySelector('[data-load-wrap]');
   if (loaderWrap) {
