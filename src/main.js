@@ -62,7 +62,10 @@ const pageTransition = {
       closeMenuCurtain();
       menuWasOpen = false;
     }
-    return runPageEnterAnimation(data.next.container, resetPage);
+    return runPageEnterAnimation(data.next.container, function(container) {
+      resetPage(container);
+      addCleanup(initMaskTextScrollReveal(container));
+    });
   },
 
   afterLeave() {
@@ -75,8 +78,6 @@ const pageTransition = {
   afterEnter(data) {
     resetWebflow(data);
     initPageLayout(data.next.container);
-    /* Text init AFTER resetPage — page is in normal flow, ScrollTrigger measures correctly */
-    addCleanup(initMaskTextScrollReveal(data.next.container));
     lenis.start();
     ScrollTrigger.refresh();
   }
