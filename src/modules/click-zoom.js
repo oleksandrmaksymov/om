@@ -1,5 +1,5 @@
 /* ======================================================
-   CLICK TO ZOOM (Basic) — osmo element, adapted for video
+   CLICK TO ZOOM (Basic) — osmo element, adapted for video (v7)
    Based on osmo Click to Zoom (Basic) documentation.
    Uses [data-click-zoom] on the video wrapper or element,
    [data-click-zoom-lightbox] as the fullscreen overlay.
