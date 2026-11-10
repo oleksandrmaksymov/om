@@ -1,63 +1,32 @@
 /* ======================================================
-   SHOWREEL — Osmo "Mini Showreel Player" + Bunny HLS Player (Info profile reel)
+   SHOWREEL — Click-to-zoom video (Info profile reel)
    Webflow (Info):
      .profile[data-profile-pin] → .profile-reel[data-mini-showreel-player="reel"][data-mini-showreel-status="not-active"]
-         → .bunny-player[data-bunny-player-init] (HLS, autoplay = muted loop, update-size cover)
-         → .mini-showreel__click[data-mini-showreel-open="reel"]
+         → video.showreel-video (autoplay, muted, loop, playsinline — mp4 direct)
      .mini-showreel-lightbox[data-mini-showreel-lightbox="reel"][data-mini-showreel-status="not-active"]
          → .mini-showreel-lightbox__dark[data-mini-showreel-close]
          → .mini-showreel-lightbox__safearea[data-mini-showreel-safearea] → .mini-showreel-lightbox__target[data-mini-showreel-target]
-   Osmo logic and settings unchanged (Flip, duration 1, expo.inOut, z-index 999, safearea fit, Esc / dark closes).
-   Site adaptations:
-   — the reel lives in the pinned .profile (ScrollTrigger pin sets a transform on it, so position: fixed inside
-     would be relative to it); while open the player is moved into the lightbox (outside the pin), Osmo then
-     places it with position: fixed exactly as in the original; on close it flies back with Flip.fit to its
-     slot and is put back there at the end;
-   — closing returns to the preview: muted, still playing (Osmo pauses and rewinds);
-   — Lenis is stopped while open; open / close only ≥768px (gsap.matchMedia);
-   — hls.js is loaded via CDN in Site Footer (before app.js) per osmo docs;
-   — everything is removed on page change (Barba).
+   Click video → GSAP Flip into lightbox; click dark overlay / Escape → Flip back.
+   Lenis stopped while open; zoom only ≥768px (gsap.matchMedia).
+   Video plays muted as preview; playVideos() handles autoplay after Barba transitions.
    ====================================================== */
-import { loadScript } from '../core/load-script.js';
 import { lenis } from '../core/setup.js';
-import { runBunnyPlayer } from './bunny-player.js';
 
-const HLS_SRC = 'https://cdn.jsdelivr.net/npm/hls.js@1.6.11';
 const SHOWREEL_MEDIA = '(min-width: 768px)';
 
 export function initShowreel(scope) {
-  if (!scope.querySelector('[data-bunny-player-init]')) return;
+  if (!scope.querySelector('[data-mini-showreel-player]')) return;
 
-  let stopPlayer = null;
-  let stopShowreel = null;
-
-  /* hls.js loaded via CDN — init synchronously (no Promise delay) */
-  if (window.Hls) {
-    stopPlayer = runBunnyPlayer(scope);
-    stopShowreel = runMiniShowreel(scope);
-  } else {
-    /* Fallback: dynamic load (Safari plays HLS natively, no hls.js needed) */
-    let destroyed = false;
-    loadScript(HLS_SRC).catch(function() {}).then(function() {
-      if (destroyed) return;
-      stopPlayer = runBunnyPlayer(scope);
-      stopShowreel = runMiniShowreel(scope);
-    });
-    return function() {
-      destroyed = true;
-      if (stopShowreel) stopShowreel();
-      if (stopPlayer) stopPlayer();
-    };
-  }
+  const stop = runMiniShowreel(scope);
 
   return function() {
-    if (stopShowreel) stopShowreel();
-    if (stopPlayer) stopPlayer();
+    if (stop) stop();
   };
 }
 
 function runMiniShowreel(scope) {
-  if (!scope.querySelector('[data-mini-showreel-open]')) return function() {};
+  /* Need at least one player wrapper and one lightbox */
+  if (!scope.querySelector('[data-mini-showreel-player]')) return function() {};
 
   // Settings (Osmo)
   var duration = 1;
@@ -125,32 +94,20 @@ function runMiniShowreel(scope) {
   function playFor(name) {
     const wrap = getPW(name);
     if (!wrap) return;
-
-    const bunny = wrap.querySelector("[data-bunny-player-init]");
     const video = wrap.querySelector("video");
     if (!video) return;
-
-    if (bunny) {
-      const btn = bunny.querySelector('[data-player-control="play"], [data-player-control="playpause"]');
-      if (btn && (video.paused || video.ended)) btn.click();
-      return;
-    }
-
     try { video.play(); } catch(_) {}
   }
 
-  /* site: back to the preview — muted, keeps playing (Osmo's stopFor pauses and rewinds) */
   function previewFor(name) {
     const wrap = getPW(name);
     if (!wrap) return;
-
-    const bunny = wrap.querySelector("[data-bunny-player-init]");
     const video = wrap.querySelector("video");
     if (!video) return;
-
     video.muted = true;
-    if (bunny) bunny.setAttribute("data-player-muted", "true");
-    if (video.paused || video.ended) playFor(name);
+    if (video.paused || video.ended) {
+      try { video.play(); } catch(_) {}
+    }
   }
 
   function reset() {
@@ -188,8 +145,8 @@ function runMiniShowreel(scope) {
     playFor(n);
 
     const state = Flip.getState(pw);
-    const rect = rectFor(tg); // measured before the move (the player must not take part in the lightbox layout)
-    lb.appendChild(pw); // site: out of the pinned (transformed) block
+    const rect = rectFor(tg);
+    lb.appendChild(pw);
     place(pw, rect);
 
     tween = Flip.from(state, {
@@ -208,7 +165,6 @@ function runMiniShowreel(scope) {
     setStatus("not-active");
 
     if (tween) tween.kill();
-    /* site: fly back above the fading dark, into the slot's place; then back into the slot */
     tween = Flip.fit(pw, slot, {
       duration: duration,
       ease: ease,
@@ -221,7 +177,6 @@ function runMiniShowreel(scope) {
     });
   }
 
-  /* site: immediate close (breakpoint change, page leave) */
   function closeNow() {
     if (!isOpen || !pw) return;
     if (tween) tween.kill();
@@ -237,11 +192,12 @@ function runMiniShowreel(scope) {
     place(pw, rectFor(tg));
   }
 
+  /* Click on the player wrapper → open */
   function onOpenClick(e) {
-    const btn = e.target.closest("[data-mini-showreel-open]");
-    if (!btn) return;
+    const player = e.target.closest("[data-mini-showreel-player]");
+    if (!player) return;
     e.preventDefault();
-    openBy(btn.getAttribute("data-mini-showreel-open") || "");
+    openBy(player.getAttribute("data-mini-showreel-player") || "");
   }
 
   function onCloseClick(e) {

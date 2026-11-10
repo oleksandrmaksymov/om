@@ -33,7 +33,7 @@ export function initPageContent(container, isFirstLoad) {
   /* Logotypes grid: square spin-only Axion card */
   addCleanup(initAxionCard(container));
 
-  /* Info: profile reel — Osmo Mini Showreel + Bunny HLS Player (preview plays before the page comes in) */
+  /* Info: profile reel — click-to-zoom video (preview plays before the page comes in) */
   addCleanup(initShowreel(container));
 
   const loaderWrap = document.querySelector('[data-load-wrap]');
