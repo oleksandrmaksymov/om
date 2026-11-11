@@ -14,7 +14,7 @@ export function initMaskTextScrollReveal(scope) {
       duration: 0.8,
       stagger: 0.08,
       ease: 'expo.out',
-      delay: 0.4,
+      delay: 0.6,
     };
 
     if (el.getBoundingClientRect().top >= window.innerHeight) {
