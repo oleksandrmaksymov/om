@@ -82,6 +82,11 @@ const pageTransition = {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
+  /* SPA manages its own scroll (Lenis + resetPage) — prevent the browser
+     from auto-restoring scroll position on reload, which breaks isInViewport
+     checks before the page transition has started. */
+  history.scrollRestoration = 'manual';
+
   barba.init({
     preventRunning: true,
     timeout: 7000,
