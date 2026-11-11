@@ -26,6 +26,7 @@ export function initMaskTextScrollReveal(scope) {
           duration: config.duration,
           stagger: config.stagger,
           ease: 'expo.out',
+          delay: 0.5,
         };
 
         if (!ScrollTrigger.isInViewport(heading)) {
