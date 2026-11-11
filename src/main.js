@@ -115,9 +115,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (loaderTl) {
           loaderTl.call(function() {
             const loaderBg = document.querySelector('[data-load-bg]');
-            initMaskTextScrollReveal(next);
             runPageOnceAnimation(next, function(container) {
               resetPage(container);
+              initMaskTextScrollReveal(next);
               lenis.start();
               ScrollTrigger.refresh();
             }, loaderBg ? loaderBg.offsetHeight : undefined);
