@@ -1,37 +1,38 @@
-/* ———— SplitText Masked Text Reveal ———— */
+/* ———— SplitText Masked Text Reveal (osmo documented approach) ———— */
 
-/* Synchronous — same approach as the loader (no async font wait).
-   Above fold: direct animation. Below fold: ScrollTrigger. */
+const splitConfig = {
+  lines: { duration: 0.8, stagger: 0.08 },
+  words: { duration: 0.6, stagger: 0.06 },
+  chars: { duration: 0.4, stagger: 0.01 }
+};
+
 export function initMaskTextScrollReveal(scope) {
-  var splits = [];
+  scope.querySelectorAll('[data-split]').forEach(function(heading) {
+    var type = heading.dataset.splitReveal || 'lines';
+    var typesToSplit =
+      type === 'lines' ? 'lines' :
+      type === 'words' ? 'lines, words' :
+      'lines, words, chars';
 
-  scope.querySelectorAll('[data-split]').forEach(function(el) {
-    var split = SplitText.create(el, { type: 'lines', mask: 'lines' });
-    gsap.set(el, { autoAlpha: 1 });
-
-    var animVars = {
-      yPercent: 110,
-      duration: 0.8,
-      stagger: 0.08,
-      ease: 'expo.out',
-      delay: 0.6,
-    };
-
-    if (el.getBoundingClientRect().top >= window.innerHeight) {
-      animVars.scrollTrigger = {
-        trigger: el,
-        start: 'top 80%',
-        once: true,
-      };
-    }
-
-    gsap.from(split.lines, animVars);
-    splits.push(split);
+    SplitText.create(heading, {
+      type: typesToSplit,
+      mask: 'lines',
+      autoSplit: true,
+      onSplit: function(instance) {
+        gsap.set(heading, { autoAlpha: 1 });
+        var config = splitConfig[type];
+        return gsap.from(instance[type], {
+          yPercent: 110,
+          duration: config.duration,
+          stagger: config.stagger,
+          ease: 'expo.out',
+          scrollTrigger: {
+            trigger: heading,
+            start: 'clamp(top 80%)',
+            once: true,
+          }
+        });
+      }
+    });
   });
-
-  ScrollTrigger.refresh();
-
-  return function() {
-    splits.forEach(function(s) { s.revert(); });
-  };
 }
