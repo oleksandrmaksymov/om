@@ -26,14 +26,15 @@ export function initMaskTextScrollReveal(scope) {
           duration: config.duration,
           stagger: config.stagger,
           ease: 'expo.out',
-          delay: 0.5,
         };
 
         if (heading._splitInVP === undefined) {
           heading._splitInVP = ScrollTrigger.isInViewport(heading);
         }
 
-        if (!heading._splitInVP) {
+        if (heading._splitInVP) {
+          animVars.delay = 0.5;
+        } else {
           animVars.scrollTrigger = {
             trigger: heading,
             start: 'clamp(top 90%)',
