@@ -21,17 +21,22 @@ export function initMaskTextScrollReveal(scope) {
       onSplit: function(instance) {
         gsap.set(heading, { autoAlpha: 1 });
         var config = splitConfig[type];
-        return gsap.from(instance[type], {
+        var animVars = {
           yPercent: 110,
           duration: config.duration,
           stagger: config.stagger,
           ease: 'expo.out',
-          scrollTrigger: {
+        };
+
+        if (!ScrollTrigger.isInViewport(heading)) {
+          animVars.scrollTrigger = {
             trigger: heading,
             start: 'clamp(top 80%)',
             once: true,
-          }
-        });
+          };
+        }
+
+        return gsap.from(instance[type], animVars);
       }
     });
   });
