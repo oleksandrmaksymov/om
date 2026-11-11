@@ -11,7 +11,7 @@ export function initMaskTextScrollReveal(scope) {
 
     var animVars = {
       yPercent: 110,
-      duration: 1.2,
+      duration: 2.0,
       stagger: 0.08,
       ease: 'expo.out',
     };
