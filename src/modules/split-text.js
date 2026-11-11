@@ -21,24 +21,19 @@ export function initMaskTextScrollReveal(scope) {
       onSplit: function(instance) {
         gsap.set(heading, { autoAlpha: 1 });
         var config = splitConfig[type];
-        var animVars = {
+
+        return gsap.from(instance[type], {
           yPercent: 110,
           duration: config.duration,
           stagger: config.stagger,
           ease: 'expo.out',
           delay: 0.5,
-        };
-
-        console.log('[split]', heading.textContent.substring(0,30), 'inVP:', ScrollTrigger.isInViewport(heading), 'top:', Math.round(heading.getBoundingClientRect().top), 'winH:', window.innerHeight);
-        if (!ScrollTrigger.isInViewport(heading)) {
-          animVars.scrollTrigger = {
+          scrollTrigger: {
             trigger: heading,
             start: 'clamp(top 80%)',
             once: true,
-          };
-        }
-
-        return gsap.from(instance[type], animVars);
+          },
+        });
       }
     });
   });
