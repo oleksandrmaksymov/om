@@ -11,9 +11,10 @@ export function initMaskTextScrollReveal(scope) {
 
     var animVars = {
       yPercent: 110,
-      duration: 2.0,
+      duration: 0.8,
       stagger: 0.08,
       ease: 'expo.out',
+      delay: 0.8,
     };
 
     if (el.getBoundingClientRect().top >= window.innerHeight) {
