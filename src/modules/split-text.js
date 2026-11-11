@@ -21,23 +21,20 @@ export function initMaskTextScrollReveal(scope) {
       onSplit: function(instance) {
         gsap.set(heading, { autoAlpha: 1 });
         var config = splitConfig[type];
-        var animVars = {
+        var aboveFold = heading.getBoundingClientRect().top < window.innerHeight;
+
+        return gsap.from(instance[type], {
           yPercent: 110,
           duration: config.duration,
           stagger: config.stagger,
           ease: 'expo.out',
-          delay: 0.5,
-        };
-
-        if (!ScrollTrigger.isInViewport(heading)) {
-          animVars.scrollTrigger = {
+          delay: aboveFold ? 0.5 : 0,
+          scrollTrigger: aboveFold ? undefined : {
             trigger: heading,
             start: 'clamp(top 80%)',
             once: true,
-          };
-        }
-
-        return gsap.from(instance[type], animVars);
+          }
+        });
       }
     });
   });
