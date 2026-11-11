@@ -29,6 +29,7 @@ export function initMaskTextScrollReveal(scope) {
           delay: 0.5,
         };
 
+        console.log('[split]', heading.textContent.substring(0,30), 'inVP:', ScrollTrigger.isInViewport(heading), 'top:', Math.round(heading.getBoundingClientRect().top), 'winH:', window.innerHeight);
         if (!ScrollTrigger.isInViewport(heading)) {
           animVars.scrollTrigger = {
             trigger: heading,
