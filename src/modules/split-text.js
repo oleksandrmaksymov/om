@@ -29,7 +29,7 @@ export function initMaskTextScrollReveal(scope) {
           delay: 0.5,
         };
 
-        if (!ScrollTrigger.isInViewport(heading)) {
+        if (heading.getBoundingClientRect().top >= window.innerHeight) {
           animVars.scrollTrigger = {
             trigger: heading,
             start: 'clamp(top 80%)',
