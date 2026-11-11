@@ -36,7 +36,7 @@ export function initMaskTextScrollReveal(scope) {
         if (!heading._splitInVP) {
           animVars.scrollTrigger = {
             trigger: heading,
-            start: 'clamp(top 80%)',
+            start: 'clamp(top 90%)',
             once: true,
           };
         }
