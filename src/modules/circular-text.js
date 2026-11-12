@@ -42,6 +42,7 @@ export function initCircularText(scope) {
 
   const lineChars = lines.map(splitLine);
   lineChars.forEach(function(chars) { gsap.set(chars, { autoAlpha: 0 }); });
+  gsap.set(wrap, { visibility: 'visible' });
   splits.set(scope, { wrap: wrap, lines: lines, lineChars: lineChars });
 
   return function() {
