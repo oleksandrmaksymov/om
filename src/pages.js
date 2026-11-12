@@ -11,6 +11,7 @@ import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 import { initScatterText } from './modules/scatter-text.js';
 import { initShowreel } from './modules/showreel.js';
+import { initUnicorn } from './modules/unicorn.js';
 
 
 /* ======================================================
@@ -32,6 +33,9 @@ export function initPageContent(container, isFirstLoad) {
 
   /* Logotypes grid: square spin-only Axion card */
   addCleanup(initAxionCard(container));
+
+  /* Research: Unicorn Studio WebGL scene */
+  addCleanup(initUnicorn(container));
 
   /* Info: profile reel — Osmo Mini Showreel + Bunny HLS Player (preview plays before the page comes in) */
   addCleanup(initShowreel(container));
