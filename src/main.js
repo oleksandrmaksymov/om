@@ -108,9 +108,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const next = data.next.container;
         const loaderTl = initPageContent(next, true);
-        /* initPageLayout is deferred to onReady (after resetPage) so that
-           ScrollTrigger pins measure the final layout, not the mid-animation one.
-           This fixes the Research page jerk on direct load. */
+        initPageLayout(next);
 
         /* First load: page enters like in a transition. With the Home loader
            it starts when the loader background leaves, from the loader's height */
@@ -120,7 +118,6 @@ document.addEventListener('DOMContentLoaded', function() {
             initMaskTextScrollReveal(next);
             runPageOnceAnimation(next, function(container) {
               resetPage(container);
-              initPageLayout(container);
               lenis.start();
               ScrollTrigger.refresh();
             }, loaderBg ? loaderBg.offsetHeight : undefined);
@@ -130,7 +127,6 @@ document.addEventListener('DOMContentLoaded', function() {
           initMaskTextScrollReveal(next);
           runPageOnceAnimation(next, function(container) {
             resetPage(container);
-            initPageLayout(container);
             lenis.start();
             ScrollTrigger.refresh();
           });

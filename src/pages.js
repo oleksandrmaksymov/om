@@ -13,7 +13,6 @@ import { initScatterText } from './modules/scatter-text.js';
 import { initShowreel } from './modules/showreel.js';
 
 
-
 /* ======================================================
    PAGE INIT — content (before transition) + layout (after)
    ====================================================== */
@@ -28,6 +27,8 @@ export function initPageContent(container, isFirstLoad) {
   /* Home: Axion + Loader */
   addCleanup(initAxion(container));
 
+  /* Research: circular text — split letters (pin + reveal are created in initPageLayout) */
+  addCleanup(initCircularText(container));
 
   /* Logotypes grid: square spin-only Axion card */
   addCleanup(initAxionCard(container));
@@ -63,8 +64,7 @@ export function initPageContent(container, isFirstLoad) {
 }
 
 export function initPageLayout(container) {
-  /* Research: circular text — split + pin (below the fold, so init after transition) */
-  addCleanup(initCircularText(container));
+  /* Research: circular text pin needs real page layout (after the transition, scroll at top) */
   addCleanup(initCircularTextScroll(container));
 
   /* Home: Flip needs real page layout (no 3D transforms) */
