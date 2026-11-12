@@ -11,7 +11,7 @@ import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 import { initScatterText } from './modules/scatter-text.js';
 import { initShowreel } from './modules/showreel.js';
-import { initHeatSvg } from './modules/heat-svg.js';
+
 
 
 /* ======================================================
@@ -28,9 +28,6 @@ export function initPageContent(container, isFirstLoad) {
   /* Home: Axion + Loader */
   addCleanup(initAxion(container));
 
-
-  /* Research: heat-map cursor effect on SVG logo */
-  addCleanup(initHeatSvg(container));
 
   /* Logotypes grid: square spin-only Axion card */
   addCleanup(initAxionCard(container));
