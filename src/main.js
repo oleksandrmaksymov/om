@@ -108,16 +108,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const next = data.next.container;
         const loaderTl = initPageContent(next, true);
-        initPageLayout(next);
 
         /* First load: page enters like in a transition. With the Home loader
-           it starts when the loader background leaves, from the loader's height */
+           it starts when the loader background leaves, from the loader's height.
+           Layout modules (pins, Flip, scatter) are created after the page has entered —
+           same order as afterEnter, so ScrollTrigger's refresh on window load
+           doesn't measure them in the middle of the entrance animation. */
         if (loaderTl) {
           loaderTl.call(function() {
             const loaderBg = document.querySelector('[data-load-bg]');
             initMaskTextScrollReveal(next);
             runPageOnceAnimation(next, function(container) {
               resetPage(container);
+              initPageLayout(container);
               lenis.start();
               ScrollTrigger.refresh();
             }, loaderBg ? loaderBg.offsetHeight : undefined);
@@ -127,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
           initMaskTextScrollReveal(next);
           runPageOnceAnimation(next, function(container) {
             resetPage(container);
+            initPageLayout(container);
             lenis.start();
             ScrollTrigger.refresh();
           });
