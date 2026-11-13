@@ -72,6 +72,11 @@ export function initPageLayout(container) {
     addCleanup(initFlipOnScroll(container));
   }
 
-  /* Info: scatter text ([data-scatter] → [data-scatter-target]) — measures real layout */
+  /* Scatter text ([data-scatter] → [data-scatter-target]) — measures real layout */
   addCleanup(initScatterText(container));
+
+  /* Layout modules are created after the text reveals (out of page order), and a pin
+     shifts everything below it — refresh ScrollTriggers top-to-bottom
+     (GSAP docs: ScrollTrigger.sort() — by refreshPriority, then start) */
+  ScrollTrigger.sort();
 }
