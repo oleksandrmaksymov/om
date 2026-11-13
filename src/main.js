@@ -127,12 +127,26 @@ document.addEventListener('DOMContentLoaded', function() {
           }, null, 'hideContent');
         } else {
           lenis.stop();
-          initMaskTextScrollReveal(next);
-          runPageOnceAnimation(next, function(container) {
-            resetPage(container);
-            initPageLayout(container);
-            lenis.start();
-            ScrollTrigger.refresh();
+          /* Same first-load pattern as bymonolog.com (Barba + GSAP + Lenis):
+             wait two frames so the browser has painted and finished the initial
+             work, run the intro with GSAP lag smoothing on (no jumps if the
+             browser stalls), then restore lagSmoothing(0) for Lenis. Text is
+             set up right before the intro, while the page is still in place. */
+          requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+              gsap.ticker.lagSmoothing(50, 17);
+              initMaskTextScrollReveal(next);
+              runPageOnceAnimation(next, function(container) {
+                resetPage(container);
+                initPageLayout(container);
+                ScrollTrigger.refresh();
+                /* next tick: the layout work above is smoothed too */
+                gsap.delayedCall(0, function() {
+                  gsap.ticker.lagSmoothing(0);
+                  lenis.start();
+                });
+              });
+            });
           });
         }
       }
