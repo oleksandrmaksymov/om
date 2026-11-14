@@ -10,6 +10,7 @@ import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 import { initShowreel } from './modules/showreel.js';
+import { initHouse } from './modules/house.js';
 
 
 /* ======================================================
@@ -25,6 +26,9 @@ export function initPageContent(container, isFirstLoad) {
 
   /* Home: Axion + Loader */
   addCleanup(initAxion(container));
+
+  /* Research: house (SVG + GSAP) in the hero block — light, drawn before the page comes in */
+  addCleanup(initHouse(container));
 
   /* Research: circular text — split letters (pin + reveal are created in initPageLayout) */
   addCleanup(initCircularText(container));
