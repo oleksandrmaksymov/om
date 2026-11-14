@@ -5,7 +5,7 @@
      door 1/4 × 2/3 of the left wall (centered, on the ground), window 1/2 × 1/3 of the right wall
      (centered) — window top always aligned with the door top.
    The break point follows the cursor over the block (easing 0.1 per frame), 0.1–0.9 of the block;
-     without the cursor (and on touch) the anchor slowly wanders on its own.
+     on touch it follows the finger (page still scrolls); otherwise the anchor slowly wanders on its own.
    p5 noise() → GSAP: endless sine.inOut tweens to random points (gsap.utils.random).
    One loop for everything: gsap.ticker; paused while the block is off screen (ScrollTrigger onToggle). */
 
@@ -104,20 +104,30 @@ export function initHouse(scope) {
     draw();
   }
 
-  /* Cursor over the block → its position in viewBox units */
-  const onMove = (e) => {
+  /* Cursor / finger over the block → its position in viewBox units (kept inside the block) */
+  const setPoint = (clientX, clientY) => {
     const r = host.getBoundingClientRect();
     if (!r.width || !r.height) return;
-    mouse.x = ((e.clientX - r.left) / r.width) * W;
-    mouse.y = ((e.clientY - r.top) / r.height) * H;
+    mouse.x = gsap.utils.clamp(0, W, ((clientX - r.left) / r.width) * W);
+    mouse.y = gsap.utils.clamp(0, H, ((clientY - r.top) / r.height) * H);
     inside = true;
   };
+  const onMove = (e) => setPoint(e.clientX, e.clientY);
   const onLeave = () => { inside = false; };
   const hasHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   if (hasHover) {
     host.addEventListener('pointermove', onMove);
     host.addEventListener('pointerleave', onLeave);
   }
+
+  /* Touch: the house follows the finger, the page keeps scrolling (passive listeners never block
+     scroll); finger lifted → smooth return like the cursor leaving */
+  const onTouch = (e) => { const t = e.touches[0]; if (t) setPoint(t.clientX, t.clientY); };
+  const touchOpts = { passive: true };
+  host.addEventListener('touchstart', onTouch, touchOpts);
+  host.addEventListener('touchmove', onTouch, touchOpts);
+  host.addEventListener('touchend', onLeave, touchOpts);
+  host.addEventListener('touchcancel', onLeave, touchOpts);
 
   /* Run only while the block is on screen */
   let running = false;
@@ -141,6 +151,10 @@ export function initHouse(scope) {
       host.removeEventListener('pointermove', onMove);
       host.removeEventListener('pointerleave', onLeave);
     }
+    host.removeEventListener('touchstart', onTouch, touchOpts);
+    host.removeEventListener('touchmove', onTouch, touchOpts);
+    host.removeEventListener('touchend', onLeave, touchOpts);
+    host.removeEventListener('touchcancel', onLeave, touchOpts);
     svg.remove();
   };
 }
