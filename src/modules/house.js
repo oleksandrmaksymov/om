@@ -1,8 +1,10 @@
 /* ———— House (Research hero) — p5 sketch rebuilt as SVG + GSAP ————
    Webflow: inside the 16:9 block put an empty Div [data-house] (100% × 100%).
    The module draws an SVG with viewBox 1920×1080 — it scales to the block by itself, crisp on any screen.
-   Same shapes, proportions and colors as the original p5 sketch:
-     the house breaks at an anchor point that follows the cursor over the block (easing 0.1 per frame);
+   At rest the house matches the design (Figma house.svg, 40px grid): break at x 1280 / y 360,
+     door 1/4 × 2/3 of the left wall (centered, on the ground), window 1/2 × 1/3 of the right wall
+     (centered) — window top always aligned with the door top.
+   The break point follows the cursor over the block (easing 0.1 per frame), 0.1–0.9 of the block;
      without the cursor (and on touch) the anchor slowly wanders on its own.
    p5 noise() → GSAP: endless sine.inOut tweens to random points (gsap.utils.random).
    One loop for everything: gsap.ticker; paused while the block is off screen (ScrollTrigger onToggle). */
@@ -29,9 +31,6 @@ export function initHouse(scope) {
     svg.appendChild(el);
     return el;
   };
-  const bg = make('rect', '#FFFFFF');
-  bg.setAttribute('width', W);
-  bg.setAttribute('height', H);
   const roofLeft = make('polygon', LIGHT);
   const roofRight = make('polygon', DARK);
   const wallLeft = make('rect', DARK);
@@ -68,8 +67,12 @@ export function initHouse(scope) {
   wanderX();
   wanderY();
 
-  const mapX = gsap.utils.mapRange(0, W, 0.1, 0.9);
-  const mapY = gsap.utils.mapRange(0, H, 0.9, 0.1);
+  /* Block center → design proportions (2/3 width, 1/3 height); edges → 0.1 / 0.9 as in the sketch */
+  const REST_X = 2 / 3, REST_Y = 1 / 3;
+  const xLeft = gsap.utils.mapRange(0, W / 2, 0.1, REST_X), xRight = gsap.utils.mapRange(W / 2, W, REST_X, 0.9);
+  const yTop = gsap.utils.mapRange(0, H / 2, 0.9, REST_Y), yBottom = gsap.utils.mapRange(H / 2, H, REST_Y, 0.1);
+  const mapX = (x) => (x <= W / 2 ? xLeft(x) : xRight(x));
+  const mapY = (y) => (y <= H / 2 ? yTop(y) : yBottom(y));
 
   function draw() {
     const lw = W * mapX(anchor.x);
@@ -80,10 +83,10 @@ export function initHouse(scope) {
     roofLeft.setAttribute('points', `0,${th} ${lw},0 ${lw},${th}`);
     roofRight.setAttribute('points', `${W},${th} ${lw},0 ${lw},${th}`);
     setRect(wallLeft, 0, th, lw, bh);
-    const dw = lw * 0.3, dh = bh * 0.8;
+    const dw = lw * 0.25, dh = bh * (2 / 3);
     setRect(door, lw / 2 - dw / 2, th + bh - dh, dw, dh);
     setRect(wallRight, lw, th, rw, bh);
-    const ww = rw * 0.6, wh = bh * 0.4;
+    const ww = rw * 0.5, wh = bh / 3;
     setRect(win, lw + rw / 2 - ww / 2, th + bh / 2 - wh / 2, ww, wh);
   }
 
