@@ -10,6 +10,7 @@ import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 import { initScatterText } from './modules/scatter-text.js';
+import { afterIntroText } from './modules/split-text.js';
 import { initShowreel } from './modules/showreel.js';
 
 
@@ -72,8 +73,16 @@ export function initPageLayout(container) {
     addCleanup(initFlipOnScroll(container));
   }
 
-  /* Scatter text ([data-scatter] → [data-scatter-target]) — measures real layout */
-  addCleanup(initScatterText(container));
+  /* Scatter text ([data-scatter] → [data-scatter-target]) — measures real layout.
+     Heavy (per-letter DOM + tweens), and static until the first scroll — created after
+     the first-screen text has revealed, so it doesn't drop frames during the intro */
+  var cancelled = false, scatterCleanup;
+  addCleanup(function() { cancelled = true; if (scatterCleanup) scatterCleanup(); });
+  afterIntroText(container).then(function() {
+    if (cancelled) return;
+    scatterCleanup = initScatterText(container);
+    if (scatterCleanup) ScrollTrigger.sort();
+  });
 
   /* Layout modules are created after the text reveals (out of page order), and a pin
      shifts everything below it — refresh ScrollTriggers top-to-bottom
