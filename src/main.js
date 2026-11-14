@@ -62,7 +62,7 @@ const pageTransition = {
       closeMenuCurtain();
       menuWasOpen = false;
     }
-    initMaskTextScrollReveal(data.next.container);
+    addCleanup(initMaskTextScrollReveal(data.next.container));
     return runPageEnterAnimation(data.next.container, resetPage);
   },
 
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (loaderTl) {
           loaderTl.call(function() {
             const loaderBg = document.querySelector('[data-load-bg]');
-            initMaskTextScrollReveal(next);
+            addCleanup(initMaskTextScrollReveal(next));
             runPageOnceAnimation(next, function(container) {
               resetPage(container);
               initPageLayout(container);
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
           requestAnimationFrame(function() {
             requestAnimationFrame(function() {
               gsap.ticker.lagSmoothing(50, 17);
-              initMaskTextScrollReveal(next);
+              addCleanup(initMaskTextScrollReveal(next));
               runPageOnceAnimation(next, function(container) {
                 resetPage(container);
                 initPageLayout(container);

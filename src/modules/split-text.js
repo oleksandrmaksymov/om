@@ -11,6 +11,7 @@ var introEnd = new WeakMap();
 
 export function initMaskTextScrollReveal(scope) {
   introEnd.set(scope, 0);
+  var splits = [];
   scope.querySelectorAll('[data-split]').forEach(function(heading) {
     var type = heading.dataset.splitReveal || 'lines';
     var typesToSplit =
@@ -18,7 +19,7 @@ export function initMaskTextScrollReveal(scope) {
       type === 'words' ? 'lines, words' :
       'lines, words, chars';
 
-    SplitText.create(heading, {
+    splits.push(SplitText.create(heading, {
       type: typesToSplit,
       mask: 'lines',
       autoSplit: true,
@@ -53,8 +54,14 @@ export function initMaskTextScrollReveal(scope) {
         }
         return tween;
       }
-    });
+    }));
   });
+
+  /* Page cleanup (Barba leave): GSAP docs — revert() restores the text, stops autoSplit
+     and kills the animation returned by onSplit (with its ScrollTrigger) */
+  return function() {
+    splits.forEach(function(split) { split.revert(); });
+  };
 }
 
 /* Resolves when the first-screen text of this container has finished revealing
