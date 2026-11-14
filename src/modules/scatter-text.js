@@ -175,7 +175,6 @@ function initPair(source, target, scope) {
       };
       const letter = make();
       const ghost = make();
-      gsap.set(ghost, { scaleX: -1 });
 
       const swapAt = t0 + span * (P.swap - P.swapLength / 2);
       const swapDur = span * P.swapLength;
@@ -185,12 +184,20 @@ function initPair(source, target, scope) {
         fade: span * 0.12, revealDur: Math.max(1e-6, t1 - revealAt),
         from: fromOpacity, mid: midOpacity,
         u: null, go: null, lo: null,
-        lx: gsap.quickSetter(letter, 'x', 'px'), ly: gsap.quickSetter(letter, 'y', 'px'),
-        gx: gsap.quickSetter(ghost, 'x', 'px'), gy: gsap.quickSetter(ghost, 'y', 'px'),
-        lo_: gsap.quickSetter(letter, 'opacity'), go_: gsap.quickSetter(ghost, 'opacity'),
+        letter, ghost,
       });
     });
     layer.appendChild(frag);
+
+    // all reads first (quickSetter caches each element's current style), then all writes —
+    // no read/write interleaving, so the browser recalculates styles once, not per letter
+    letters.forEach((L) => {
+      L.lx = gsap.quickSetter(L.letter, 'x', 'px'); L.ly = gsap.quickSetter(L.letter, 'y', 'px');
+      L.gx = gsap.quickSetter(L.ghost, 'x', 'px');  L.gy = gsap.quickSetter(L.ghost, 'y', 'px');
+      L.lo_ = gsap.quickSetter(L.letter, 'opacity'); L.go_ = gsap.quickSetter(L.ghost, 'opacity');
+      L.gs = gsap.quickSetter(L.ghost, 'scaleX');
+    });
+    letters.forEach((L) => L.gs(-1)); // ghost = mirrored copy
 
     render(self.progress);
     show(self.progress <= 0 ? 'before' : self.progress >= 1 ? 'after' : 'during');
