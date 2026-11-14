@@ -12,7 +12,7 @@
 const W = 1920;
 const H = 1080;
 const LIGHT = '#E5E5E5';
-const DARK = '#1B1B1B';
+const DARK = '#000000';
 const NS = 'http://www.w3.org/2000/svg';
 
 export function initHouse(scope) {
