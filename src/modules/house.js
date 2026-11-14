@@ -90,9 +90,14 @@ export function initHouse(scope) {
     setRect(win, lw + rw / 2 - ww / 2, th + bh / 2 - wh / 2, ww, wh);
   }
 
-  /* Easing 0.1 per 60fps frame, same speed on 120Hz screens (GSAP docs: ticker.deltaRatio) */
+  /* Easing per 60fps frame: 0.1 while following the cursor, 0.03 when it returns after the cursor
+     leaves (and while wandering) — a slower, smoother return. Same speed on 120Hz screens
+     (GSAP docs: ticker.deltaRatio) */
+  const FOLLOW = 0.1;
+  const RETURN = 0.03;
   function tick() {
-    const k = 1 - Math.pow(0.9, gsap.ticker.deltaRatio(60));
+    const ease = inside ? FOLLOW : RETURN;
+    const k = 1 - Math.pow(1 - ease, gsap.ticker.deltaRatio(60));
     const t = inside ? mouse : auto;
     anchor.x += (t.x - anchor.x) * k;
     anchor.y += (t.y - anchor.y) * k;
