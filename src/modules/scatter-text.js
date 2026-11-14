@@ -13,10 +13,10 @@
      data-scatter-swap-length   length of that cross-fade          (0.16)
      data-scatter-spread        uneven start/arrival               (0.04)
      data-scatter-seed          scatter variant                    (42)
-   Layout is measured on every ScrollTrigger refresh (resize, page transitions).
+   Layout is measured on every ScrollTrigger refresh (resize, page transitions);
+   while scrolling, each letter only gets its position/opacity (gsap.quickSetter).
    Desktop only (≥992px). */
 
-const STEPS = 24;        // samples of each letter curve
 const REVEAL_SCREENS = 0.5; // letters gather into full opacity over the last half screen
 
 function seededRandom(seed) { // sfc32 + splitmix32
@@ -57,6 +57,9 @@ function measureChars(el) {
   return out;
 }
 
+const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+
 function initPair(source, target, scope) {
   const d = source.dataset;
   const n = (v, def) => (v === undefined || v === '' || isNaN(+v) ? def : +v);
@@ -74,21 +77,52 @@ function initPair(source, target, scope) {
   layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;overflow:hidden;visibility:hidden;';
   scope.prepend(layer); // first in the container → under later positioned content (cards, video)
 
-  let st = null, tl = null, destroyed = false;
+  const sineInOut = gsap.parseEase('sine.inOut');
+  const sineIn = gsap.parseEase('sine.in');
 
-  // which of the three is visible: source (before), layer (during), target (after)
+  let st = null, letters = [], restOnLayer = false, destroyed = false;
+
+  // which of the three is visible: source (before), layer (during), target (after).
+  // When the range starts at scroll 0 (source on the first screen), the letters layer
+  // replaces the source right away — same glyphs, same place — so it is already painted
+  // before the first scroll
   const show = (state) => {
+    if (state === 'before' && restOnLayer) state = 'during';
     source.style.visibility = state === 'before' ? '' : 'hidden';
     layer.style.visibility = state === 'during' ? 'visible' : 'hidden';
     target.style.visibility = state === 'after' ? '' : 'hidden';
   };
 
-  // letters + timeline from the CURRENT layout. Runs on every ScrollTrigger refresh
+  // position + opacity of every letter at progress p (0–1 of the scroll range).
+  // Plain math + gsap.quickSetter (GSAP docs: for values updated very often)
+  function render(p) {
+    for (let i = 0; i < letters.length; i++) {
+      const L = letters[i];
+      const u = sineInOut(clamp01((p - L.t0) / L.span));
+      if (u !== L.u) {
+        L.u = u;
+        const x = (1 - u) * (1 - u) * L.A.x + 2 * u * (1 - u) * L.C.x + u * u * L.B.x;
+        const y = (1 - u) * (1 - u) * L.A.y + 2 * u * (1 - u) * L.C.y + u * u * L.B.y;
+        L.lx(x); L.ly(y); L.gx(x); L.gy(y);
+      }
+      // ghost (mirrored): source opacity → cloud opacity → fades out at the swap
+      let go = L.from;
+      if (p > L.t0) go = lerp(L.from, L.mid, sineInOut(clamp01((p - L.t0) / L.fade)));
+      if (p > L.swapAt) go = lerp(L.mid, 0, sineInOut(clamp01((p - L.swapAt) / L.swapDur)));
+      // letter (normal): fades in at the swap → full opacity while gathering
+      let lo = 0;
+      if (p > L.swapAt) lo = lerp(0, L.mid, sineInOut(clamp01((p - L.swapAt) / L.swapDur)));
+      if (p > L.revealAt) lo = lerp(L.mid, 1, sineIn(clamp01((p - L.revealAt) / L.revealDur)));
+      if (go !== L.go) { L.go = go; L.go_(go); }
+      if (lo !== L.lo) { L.lo = lo; L.lo_(lo); }
+    }
+  }
+
+  // letters from the CURRENT layout. Runs on every ScrollTrigger refresh
   // (creation, resize, ScrollTrigger.refresh() after page transitions)
   function build(self) {
     if (destroyed) return;
-    if (tl) tl.kill();
-    tl = null;
+    letters = [];
     layer.textContent = '';
 
     // measure with source/target in their normal state
@@ -105,6 +139,7 @@ function initPair(source, target, scope) {
     const S0 = self.start, S1 = self.end, range = Math.max(1, S1 - S0);
     const vw = window.innerWidth, vh = window.innerHeight;
     const reveal = Math.max(0.5, 1 - (REVEAL_SCREENS * vh) / range); // gather starts half a screen before the end
+    restOnLayer = S0 <= 0;
 
     const srcStyle = getComputedStyle(source);
     const tgtStyle = getComputedStyle(target);
@@ -113,8 +148,7 @@ function initPair(source, target, scope) {
     const font = `font-family:${tgtStyle.fontFamily};font-size:${tgtStyle.fontSize};font-weight:${tgtStyle.fontWeight};letter-spacing:${tgtStyle.letterSpacing};color:${tgtStyle.color};`;
 
     const r = seededRandom(P.seed);
-    const ease = gsap.parseEase('sine.inOut');
-    const timeline = gsap.timeline({ paused: true });
+    const frag = document.createDocumentFragment();
 
     to.forEach((t, i) => {
       const f = from[i];
@@ -126,44 +160,39 @@ function initPair(source, target, scope) {
         y: (-P.overflow + r() * (1 + P.overflow * 2)) * vh,
       };
       const C = { x: 2 * M.x - (A.x + B.x) / 2, y: 2 * M.y - (A.y + B.y) / 2 }; // curve passes through M
-      const bez = (u) => ({
-        x: (1 - u) * (1 - u) * A.x + 2 * u * (1 - u) * C.x + u * u * B.x,
-        y: (1 - u) * (1 - u) * A.y + 2 * u * (1 - u) * C.y + u * u * B.y,
-      });
-      const keyframes = { easeEach: 'none' };
-      for (let k = 0; k <= STEPS; k++) keyframes[(k / STEPS * 100).toFixed(2) + '%'] = bez(ease(k / STEPS));
 
       const t0 = r() * P.spread;
       const t1 = 1 - r() * P.spread * 0.5;
       const span = t1 - t0;
 
       // two copies on the same path: mirrored (first half) → normal (second half)
-      const make = (w, h) => {
+      const make = () => {
         const s = document.createElement('span');
         s.textContent = t.ch;
-        s.style.cssText = `position:absolute;left:0;top:0;width:${w}px;height:${h}px;line-height:${h}px;white-space:pre;will-change:transform,opacity;${font}`;
-        layer.appendChild(s);
+        s.style.cssText = `position:absolute;left:0;top:0;width:${t.w}px;height:${t.h}px;line-height:${t.h}px;white-space:pre;will-change:transform,opacity;${font}`;
+        frag.appendChild(s);
         return s;
       };
-      const letter = make(t.w, t.h);
-      const ghost = make(t.w, t.h);
-      gsap.set(ghost, { x: A.x, y: A.y, scaleX: -1, opacity: fromOpacity });
-      gsap.set(letter, { x: A.x, y: A.y, opacity: 0 });
+      const letter = make();
+      const ghost = make();
+      gsap.set(ghost, { scaleX: -1 });
 
-      const fade = span * 0.12;
       const swapAt = t0 + span * (P.swap - P.swapLength / 2);
       const swapDur = span * P.swapLength;
       const revealAt = Math.max(reveal, swapAt + swapDur);
-      timeline.to([letter, ghost], { keyframes, duration: span, ease: 'none' }, t0)
-        .to(ghost, { opacity: midOpacity, duration: fade, ease: 'sine.inOut' }, t0)
-        .to(ghost, { opacity: 0, duration: swapDur, ease: 'sine.inOut' }, swapAt)
-        .to(letter, { opacity: midOpacity, duration: swapDur, ease: 'sine.inOut' }, swapAt)
-        .to(letter, { opacity: 1, duration: t1 - revealAt, ease: 'sine.in' }, revealAt);
+      letters.push({
+        A, B, C, t0, span, swapAt, swapDur, revealAt,
+        fade: span * 0.12, revealDur: Math.max(1e-6, t1 - revealAt),
+        from: fromOpacity, mid: midOpacity,
+        u: null, go: null, lo: null,
+        lx: gsap.quickSetter(letter, 'x', 'px'), ly: gsap.quickSetter(letter, 'y', 'px'),
+        gx: gsap.quickSetter(ghost, 'x', 'px'), gy: gsap.quickSetter(ghost, 'y', 'px'),
+        lo_: gsap.quickSetter(letter, 'opacity'), go_: gsap.quickSetter(ghost, 'opacity'),
+      });
     });
-    timeline.to({}, { duration: 1 - timeline.duration() + 0.0001 }); // exactly 0–1 of the range
+    layer.appendChild(frag);
 
-    tl = timeline;
-    tl.progress(self.progress);
+    render(self.progress);
     show(self.progress <= 0 ? 'before' : self.progress >= 1 ? 'after' : 'during');
   }
 
@@ -180,9 +209,9 @@ function initPair(source, target, scope) {
       onEnterBack: () => show('during'),
       onLeave: () => show('after'),
       onLeaveBack: () => show('before'),
-      onUpdate: (self) => { if (tl) tl.progress(self.progress); }, // 1:1 with the (Lenis-smoothed) scroll
+      onUpdate: (self) => render(self.progress), // 1:1 with the (Lenis-smoothed) scroll
     });
-    if (!tl) build(st);
+    if (!letters.length) build(st);
   }
 
   // measure with the target's real font (FontFaceSet.load — only this font)
@@ -192,7 +221,7 @@ function initPair(source, target, scope) {
   return () => {
     destroyed = true;
     if (st) st.kill();
-    if (tl) tl.kill();
+    letters = [];
     layer.remove();
     source.style.visibility = '';
     target.style.visibility = '';
