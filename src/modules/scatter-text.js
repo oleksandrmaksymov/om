@@ -75,7 +75,6 @@ function initPair(source, target, scope) {
   const layer = document.createElement('div');
   layer.setAttribute('aria-hidden', 'true');
   layer.style.cssText = 'position:fixed;inset:0;pointer-events:none;overflow:hidden;visibility:hidden;';
-  layer.style.zIndex = getComputedStyle(source).zIndex; // layer order = source z-index set in Webflow
   scope.prepend(layer); // first in the container → under later positioned content (cards, video)
 
   const sineInOut = gsap.parseEase('sine.inOut');
