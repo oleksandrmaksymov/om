@@ -197,6 +197,9 @@ function initPair(source, target, scope) {
       L.lo_ = gsap.quickSetter(L.letter, 'opacity'); L.go_ = gsap.quickSetter(L.ghost, 'opacity');
       L.gs = gsap.quickSetter(L.ghost, 'scaleX');
     });
+    // GSAP docs: force3D: true — always translate3d, so every letter stays its own
+    // GPU layer and only moves (like the GSAP tweens of the old engine did)
+    gsap.set(letters.flatMap((L) => [L.letter, L.ghost]), { force3D: true });
     letters.forEach((L) => L.gs(-1)); // ghost = mirrored copy
 
     render(self.progress);
