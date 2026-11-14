@@ -6,11 +6,7 @@ const splitConfig = {
   chars: { duration: 0.4, stagger: 0.01 }
 };
 
-/* End time (global timeline) of the first-screen reveal, per page container */
-var introEnd = new WeakMap();
-
 export function initMaskTextScrollReveal(scope) {
-  introEnd.set(scope, 0);
   var splits = [];
   scope.querySelectorAll('[data-split]').forEach(function(heading) {
     var type = heading.dataset.splitReveal || 'lines';
@@ -47,12 +43,7 @@ export function initMaskTextScrollReveal(scope) {
           };
         }
 
-        var tween = gsap.from(instance[type], animVars);
-        if (heading._splitInVP) {
-          /* GSAP docs: endTime() — when this tween finishes on the global timeline */
-          introEnd.set(scope, Math.max(introEnd.get(scope) || 0, tween.endTime()));
-        }
-        return tween;
+        return gsap.from(instance[type], animVars);
       }
     }));
   });
@@ -62,11 +53,4 @@ export function initMaskTextScrollReveal(scope) {
   return function() {
     splits.forEach(function(split) { split.revert(); });
   };
-}
-
-/* Resolves when the first-screen text of this container has finished revealing
-   (immediately if there is none). Used to start heavy layout work after the intro. */
-export function afterIntroText(scope) {
-  var wait = Math.max(0, (introEnd.get(scope) || 0) - gsap.globalTimeline.time());
-  return new Promise(function(resolve) { gsap.delayedCall(wait, resolve); });
 }

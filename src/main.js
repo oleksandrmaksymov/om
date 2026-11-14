@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         /* First load: page enters like in a transition. With the Home loader
            it starts when the loader background leaves, from the loader's height.
-           Layout modules (pins, Flip, scatter) are created after the page has entered —
+           Layout modules (pins, Flip) are created after the page has entered —
            same order as afterEnter, so ScrollTrigger's refresh on window load
            doesn't measure them in the middle of the entrance animation. */
         if (loaderTl) {
