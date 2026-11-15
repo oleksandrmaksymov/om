@@ -8,7 +8,7 @@ const MARKER_COVER = { duration: 0.8, ease: 'expo.out' };
 const MARKER_STAGGER = 0.08;
 
 /* Background variants: space between the text and the edge of its bar (px, all sides) */
-const BG_PADDING = 2;
+const BG_PADDING = 4;
 
 const BG_VARIANTS = {
   dark:  { bar: '#000000', text: '#FFFFFF', hoverText: '#000000' },
