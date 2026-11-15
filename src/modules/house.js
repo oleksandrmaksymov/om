@@ -39,6 +39,10 @@ export function initHouse(scope) {
   const door = make('rect', LIGHT);
   const wallRight = make('rect', LIGHT);
   const win = make('rect', DARK);
+  /* SVG spec (MDN shape-rendering): crisp pixel edges for the straight shapes — no half-transparent
+     bottom row when the block height is fractional (no seam with a block of the same color below).
+     Roof triangles keep anti-aliasing so the slopes stay smooth */
+  [wallLeft, door, wallRight, win].forEach((el) => el.setAttribute('shape-rendering', 'crispEdges'));
   host.appendChild(svg);
 
   const setRect = (el, x, y, w, h) => {
