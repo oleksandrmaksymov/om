@@ -101,12 +101,15 @@ export function initHighlightMarkerTextReveal(scope) {
             if (variant) gsap.to(line, { color: variant.text, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
           };
 
-          line.addEventListener('mouseenter', onEnter);
-          line.addEventListener('mouseleave', onLeave);
-          instance.listeners.push(
-            { el: line, type: 'mouseenter', fn: onEnter },
-            { el: line, type: 'mouseleave', fn: onLeave }
-          );
+          /* dark / light (Research Practice): reveal only, no hover — trying it without */
+          if (!variant) {
+            line.addEventListener('mouseenter', onEnter);
+            line.addEventListener('mouseleave', onLeave);
+            instance.listeners.push(
+              { el: line, type: 'mouseenter', fn: onEnter },
+              { el: line, type: 'mouseleave', fn: onLeave }
+            );
+          }
         });
 
         var st = ScrollTrigger.create({

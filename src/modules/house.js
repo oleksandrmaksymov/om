@@ -34,7 +34,10 @@ export function initHouse(scope) {
     svg.appendChild(el);
     return el;
   };
-  const roofLeft = make('polygon', LIGHT);
+  /* Layers, like in the design file: one grey silhouette of the whole house underneath, the other
+     shapes on top. Every inner edge then blends with grey, not with the white page behind the
+     SVG — no light hairline where two anti-aliased shapes meet. The left roof is this silhouette */
+  const base = make('polygon', LIGHT);
   const roofRight = make('polygon', DARK);
   const wallLeft = make('rect', DARK);
   const door = make('rect', LIGHT);
@@ -85,7 +88,7 @@ export function initHouse(scope) {
     const th = gsap.utils.clamp(H * MIN, H * MAX, anchor.y);
     const bh = H - th;
 
-    roofLeft.setAttribute('points', `0,${th} ${lw},0 ${lw},${th}`);
+    base.setAttribute('points', `0,${th} ${lw},0 ${W},${th} ${W},${H} 0,${H}`);
     roofRight.setAttribute('points', `${W},${th} ${lw},0 ${lw},${th}`);
     setRect(wallLeft, 0, th, lw, bh);
     const dw = lw * 0.25, dh = bh * (2 / 3);
