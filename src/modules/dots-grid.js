@@ -2,15 +2,17 @@
    INTERACTIVE DOTS GRID (Background) — Osmo
    Webflow: an absolute cover Div [data-dots-canvas-init] inside the block (Research: .dots-grid in .desert);
    optional per-grid colors: [data-dots-color-inactive] / [data-dots-color-active].
-   Osmo logic and settings unchanged (dark dots on a light background — Osmo defaults).
+   Osmo logic and settings, except: gap 0.5em (Osmo 1em).
    Site adaptations: runs per page container (Barba) instead of DOMContentLoaded, and returns a cleanup
    that removes window listeners, observers, the animation frame and the canvases on page leave.
+   Edge: each grid is centered inside its block with a free border of at least one gap on every side,
+   so dots are never cut by the block edge (instead of Osmo's shared page-wide grid).
    ====================================================== */
 export function initInteractiveDotsGridBackground(scope) {
   const elements = scope.querySelectorAll('[data-dots-canvas-init]');
   if (!elements.length) return;
 
-  const gap = '1em';
+  const gap = '0.5em';
   const dotSize = '0.125em';
   const shape = 'circle'; // 'circle' or 'square'
   const dotColorInactive = 'rgba(0, 0, 0, 0.2)';
@@ -26,7 +28,7 @@ export function initInteractiveDotsGridBackground(scope) {
   const press = { value: 0, from: 0, to: 0, start: 0 };
   const canvases = [];
 
-  let dpr, size, spacing, radius, raf, lastTime = performance.now();
+  let dpr, size, gapPx, spacing, radius, raf, lastTime = performance.now();
 
   function toPx(value, element) {
     const probe = document.createElement('div');
@@ -102,18 +104,13 @@ export function initInteractiveDotsGridBackground(scope) {
 
     state.ctx.clearRect(0, 0, state.width, state.height);
 
-    const colStart = Math.floor(left / spacing);
-    const colEnd = Math.ceil((left + state.width) / spacing);
-    const rowStart = Math.floor(top / spacing);
-    const rowEnd = Math.ceil((top + state.height) / spacing);
+    for (let row = 0; row < state.rows; row++) {
+      const y = state.oy + row * spacing;
+      const gy = top + y;
 
-    for (let row = rowStart; row <= rowEnd; row++) {
-      const gy = row * spacing;
-      const y = gy - top;
-
-      for (let col = colStart; col <= colEnd; col++) {
-        const gx = col * spacing;
-        const x = gx - left;
+      for (let col = 0; col < state.cols; col++) {
+        const x = state.ox + col * spacing;
+        const gx = left + x;
         const influence = hasPointer && hover.value ? Math.max(0, 1 - Math.hypot(gx - px, gy - py) / radius) * hover.value : 0;
         const currentSize = size * (1 + (maxScale - 1) * influence);
 
@@ -168,13 +165,23 @@ export function initInteractiveDotsGridBackground(scope) {
   function resize() {
     dpr = Math.min(devicePixelRatio || 1, 2);
     size = toPx(dotSize, elements[0]);
-    spacing = size + toPx(gap, elements[0]);
+    gapPx = toPx(gap, elements[0]);
+    spacing = size + gapPx;
     radius = spacing * hoverRadius;
+
+    /* dots that fit with at least one gap from every edge, grid centered → equal borders */
+    const fit = (length) => {
+      const count = Math.max(0, Math.floor((length - 2 * gapPx - size) / spacing) + 1);
+      return { count, offset: (length - (count - 1) * spacing) / 2 };
+    };
 
     canvases.forEach(state => {
       const rect = state.element.getBoundingClientRect();
       state.width = rect.width;
       state.height = rect.height;
+      const fx = fit(rect.width), fy = fit(rect.height);
+      state.cols = fx.count; state.ox = fx.offset;
+      state.rows = fy.count; state.oy = fy.offset;
       state.canvas.width = Math.round(rect.width * dpr);
       state.canvas.height = Math.round(rect.height * dpr);
       state.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
