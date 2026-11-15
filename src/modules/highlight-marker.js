@@ -7,6 +7,9 @@
 const MARKER_COVER = { duration: 0.8, ease: 'expo.out' };
 const MARKER_STAGGER = 0.08;
 
+/* Background variants: space between the text and the edge of its bar (px, all sides) */
+const BG_PADDING = 2;
+
 const BG_VARIANTS = {
   dark:  { bar: '#000000', text: '#FFFFFF', hoverText: '#000000' },
   light: { bar: '#E5E5E5', text: '#000000', hoverText: '#000000' },
@@ -78,7 +81,7 @@ export function initHighlightMarkerTextReveal(scope) {
 
           /* Background variant: bar under the text (line = own layer), text in its variant color */
           if (variant) {
-            gsap.set(line, { zIndex: 0, color: variant.text });
+            gsap.set(line, { zIndex: 0, color: variant.text, padding: BG_PADDING });
             gsap.set(bar, { zIndex: -1 });
           }
 
