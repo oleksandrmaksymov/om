@@ -7,10 +7,10 @@
 const MARKER_COVER = { duration: 0.8, ease: 'expo.out' };
 const MARKER_STAGGER = 0.08;
 
-/* Background variants: space between the text and the left/right edge of its bar (px).
-   Top/bottom stay 0 so the bars of stacked lines meet edge to edge — the vertical space
-   comes from the text's line-height in Webflow */
-const BG_PADDING_X = 4;
+/* Background variants: space between the text and the edge of its bar (px, all sides).
+   The line is an inline-block aligned to the top (vertical-align: top), so its parent grows to
+   exactly line + padding and stacked items meet edge to edge on any screen */
+const BG_PADDING = 4;
 
 const BG_VARIANTS = {
   dark:  { bar: '#000000', text: '#FFFFFF', hoverText: '#000000' },
@@ -83,7 +83,7 @@ export function initHighlightMarkerTextReveal(scope) {
 
           /* Background variant: bar under the text (line = own layer), text in its variant color */
           if (variant) {
-            gsap.set(line, { zIndex: 0, color: variant.text, paddingLeft: BG_PADDING_X, paddingRight: BG_PADDING_X });
+            gsap.set(line, { zIndex: 0, color: variant.text, padding: BG_PADDING, verticalAlign: 'top' });
             gsap.set(bar, { zIndex: -1 });
           }
 
