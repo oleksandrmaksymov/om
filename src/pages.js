@@ -11,6 +11,7 @@ import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 import { initShowreel } from './modules/showreel.js';
 import { initHouse } from './modules/house.js';
+import { initInteractiveDotsGridBackground } from './modules/dots-grid.js';
 
 
 /* ======================================================
@@ -29,6 +30,9 @@ export function initPageContent(container, isFirstLoad) {
 
   /* Research: house (SVG + GSAP) in the hero block — light, drawn before the page comes in */
   addCleanup(initHouse(container));
+
+  /* Research: Osmo Interactive Dots Grid over the desert image ([data-dots-canvas-init]) */
+  addCleanup(initInteractiveDotsGridBackground(container));
 
   /* Research: circular text — split letters (pin + reveal are created in initPageLayout) */
   addCleanup(initCircularText(container));
