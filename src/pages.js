@@ -12,6 +12,8 @@ import { initCircularText, initCircularTextScroll } from './modules/circular-tex
 import { initShowreel } from './modules/showreel.js';
 import { initHouse } from './modules/house.js';
 import { initInteractiveDotsGridBackground } from './modules/dots-grid.js';
+import { initTypeField } from './modules/type-field.js';
+import { initStackedImageTrail } from './modules/stacked-trail.js';
 
 
 /* ======================================================
@@ -78,6 +80,11 @@ export function initPageLayout(container) {
   if (container.querySelector('[data-flip-element]') && window.innerWidth > 991) {
     addCleanup(initFlipOnScroll(container));
   }
+
+  /* Research: cursor experiment — type field (sticky, cursor rows) + Osmo stacked image trail.
+     Both measure the real layout, so they are created after the transition, like Flip */
+  addCleanup(initTypeField(container));
+  addCleanup(initStackedImageTrail(container));
 
   /* Layout modules are created after the text reveals (out of page order), and a pin
      shifts everything below it — refresh ScrollTriggers top-to-bottom
