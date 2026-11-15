@@ -8,8 +8,9 @@ const MARKER_COVER = { duration: 0.8, ease: 'expo.out' };
 const MARKER_STAGGER = 0.08;
 
 /* Background variants: space between the text and the edge of its bar (px, all sides).
-   The line is an inline-block aligned to the top (vertical-align: top), so its parent grows to
-   exactly line + padding and stacked items meet edge to edge on any screen */
+   The line is an inline-block aligned to the top (vertical-align: top) with no vertical margin
+   (Osmo's Head CSS gives lines margin -0.15em for the cover style — that made bars overlap),
+   so its parent grows to exactly line + padding and stacked items meet edge to edge on any screen */
 const BG_PADDING = 4;
 
 const BG_VARIANTS = {
@@ -83,7 +84,7 @@ export function initHighlightMarkerTextReveal(scope) {
 
           /* Background variant: bar under the text (line = own layer), text in its variant color */
           if (variant) {
-            gsap.set(line, { zIndex: 0, color: variant.text, padding: BG_PADDING, verticalAlign: 'top' });
+            gsap.set(line, { zIndex: 0, color: variant.text, padding: BG_PADDING, verticalAlign: 'top', marginTop: 0, marginBottom: 0 });
             gsap.set(bar, { zIndex: -1 });
           }
 
