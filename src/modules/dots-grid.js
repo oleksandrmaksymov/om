@@ -5,7 +5,7 @@
    Osmo logic and settings, except: gap 0.5em (Osmo 1em), hoverRadius 24 (Osmo 12), dotMaxScale 2.125 (Osmo 1.75).
    Site adaptations: runs per page container (Barba) instead of DOMContentLoaded, and returns a cleanup
    that removes window listeners, observers, the animation frame and the canvases on page leave.
-   Edge: each grid sits inside its block with the same free border (two gaps) on all four sides, so dots
+   Edge: each grid sits inside its block with the same free border (three gaps) on all four sides, so dots
    are never cut by the block edge (instead of Osmo's shared page-wide grid). The step is stretched by
    a fraction of a pixel per axis so the dots fill the block exactly.
    ====================================================== */
@@ -173,7 +173,7 @@ export function initInteractiveDotsGridBackground(scope) {
     radius = spacing * hoverRadius;
 
     /* dots that fit with at least one gap from every edge, grid centered → equal borders */
-    const edge = 2 * gapPx + size / 2; // dot center to block edge = two gaps from the dot's edge
+    const edge = 3 * gapPx + size / 2; // dot center to block edge = three gaps from the dot's edge
     const fit = (length) => {
       const span = length - 2 * edge;
       const count = span >= 0 ? Math.floor(span / spacing) + 1 : 0;
