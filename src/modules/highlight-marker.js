@@ -1,8 +1,16 @@
 /* ———— Highlight Marker Text Reveal (osmo component) ———— */
-/* Bars COVER text on scroll; hover reveals individual lines */
+/* Default: bars COVER text on scroll; hover reveals individual lines.
+   Background variants — the bar slides in UNDER the text (same timing), hover takes it away:
+     data-highlight-marker-reveal="dark"  → white text on a black bar, hover: no bar, black text
+     data-highlight-marker-reveal="light" → black text on a grey bar,  hover: no bar, black text */
 
 const MARKER_COVER = { duration: 0.8, ease: 'expo.out' };
 const MARKER_STAGGER = 0.08;
+
+const BG_VARIANTS = {
+  dark:  { bar: '#000000', text: '#FFFFFF', hoverText: '#000000' },
+  light: { bar: '#E5E5E5', text: '#000000', hoverText: '#000000' },
+};
 
 const directionMap = {
   right: { prop: 'scaleX', origin: 'left center' },
@@ -36,6 +44,8 @@ export function initHighlightMarkerTextReveal(scope) {
       ? (getComputedStyle(document.body).getPropertyValue(theme).trim() || theme)
       : theme;
     var dirConfig = directionMap[direction] || directionMap.right;
+    var variant = BG_VARIANTS[el.getAttribute('data-highlight-marker-reveal')] || null;
+    if (variant) color = variant.bar;
 
     var instance = { timeline: null, scrollTrigger: null, split: null, listeners: [] };
     var covered = false;
@@ -66,6 +76,12 @@ export function initHighlightMarkerTextReveal(scope) {
           gsap.set(bar, { [dirConfig.prop]: 0 });
           line.appendChild(bar);
 
+          /* Background variant: bar under the text (line = own layer), text in its variant color */
+          if (variant) {
+            gsap.set(line, { zIndex: 0, color: variant.text });
+            gsap.set(bar, { zIndex: -1 });
+          }
+
           /* Bar covers text on scroll */
           tl.to(bar, {
             [dirConfig.prop]: 1,
@@ -77,10 +93,12 @@ export function initHighlightMarkerTextReveal(scope) {
           var onEnter = function() {
             if (!covered) return;
             gsap.to(bar, { [dirConfig.prop]: 0, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
+            if (variant) gsap.to(line, { color: variant.hoverText, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
           };
           var onLeave = function() {
             if (!covered) return;
             gsap.to(bar, { [dirConfig.prop]: 1, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
+            if (variant) gsap.to(line, { color: variant.text, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
           };
 
           line.addEventListener('mouseenter', onEnter);
