@@ -4,7 +4,7 @@
    (position: sticky set in Webflow). Desktop only (≥992px).
    Changes for Research:
    — only the 9 rows around the cursor are visible (center row full, 4 above/below shorter);
-     all other rows are empty, and nothing is shown while the cursor is outside the browser window;
+     all other rows are empty; nothing is shown while the cursor is outside the block or the browser window;
    — rows are split into letters only (no line reveal — nothing is visible at rest);
    — cursor via core/pointer.js. */
 import { lenis } from '../core/setup.js';
@@ -96,13 +96,15 @@ export function initTypeField(scope) {
     peak += (mouseY - blockTop - padTop - peak) * f(TF.followEase);
     const center = Math.floor(peak / lineH);
     const phase = s * 0.004;
+    // react only while the cursor is over this block (not over the blocks above/below it)
+    const over = onScreen && mouseY >= sectionTop - s && mouseY <= sectionBottom - s;
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const L = row.chars.length;
       const dist = Math.abs(i - center);
       let target = 0;
-      if (onScreen) {
+      if (over) {
         if (dist === 0) {
           target = L;
         } else if (dist <= TF.radius) {
