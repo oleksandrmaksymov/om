@@ -6,8 +6,9 @@ import { watchPointer } from '../core/pointer.js';
    At rest the house matches the design (Figma house.svg, 40px grid): break at x 1280 / y 360,
      door 1/4 × 2/3 of the left wall (centered, on the ground), window 1/2 × 1/3 of the right wall
      (centered) — window top always aligned with the door top.
-   The break point follows the cursor over the block (easing 0.1 per frame), 0.1–0.9 of the block;
-     on touch it follows the finger (page still scrolls); otherwise the anchor slowly wanders on its own.
+   The break point sits right under the cursor while the cursor is over the house (easing 0.1 per frame),
+     kept 10–90% inside the block; on touch it follows the finger (page still scrolls);
+     otherwise it slowly wanders around the design point (return easing 0.03).
    p5 noise() → GSAP: endless sine.inOut tweens to random points (gsap.utils.random).
    One loop for everything: gsap.ticker; paused while the block is off screen (ScrollTrigger onToggle). */
 
@@ -52,20 +53,25 @@ export function initHouse(scope) {
     el.setAttribute('height', Math.max(0, h));
   };
 
-  const anchor = { x: W / 2, y: H / 2 };
-  const mouse = { x: W / 2, y: H / 2 };
-  const auto = { x: W / 2, y: H / 2 };
+  /* The break point (where both roofs and both walls meet) in viewBox units.
+     Rest = design point (2/3 width, 1/3 height); always kept 10–90% inside the block */
+  const REST = { x: W * (2 / 3), y: H * (1 / 3) };
+  const MIN = 0.1, MAX = 0.9;
+  const anchor = { x: REST.x, y: REST.y };
+  const mouse = { x: REST.x, y: REST.y };
+  const auto = { x: REST.x, y: REST.y };
   let inside = false;
 
-  /* Wandering point (instead of p5 noise): x slower than y, like noise(t*0.1) / noise(t*0.2) */
+  /* Wandering point without a cursor (instead of p5 noise): around the design point,
+     the same range as before (x 33–81%, y 19–67%); x slower than y, like noise(t*0.1) / noise(t*0.2) */
   const wanderX = () => gsap.to(auto, {
-    x: gsap.utils.random(W * 0.2, W * 0.8),
+    x: gsap.utils.random(W * 0.327, W * 0.807),
     duration: gsap.utils.random(4, 7),
     ease: 'sine.inOut',
     onComplete: wanderX,
   });
   const wanderY = () => gsap.to(auto, {
-    y: gsap.utils.random(H * 0.2, H * 0.8),
+    y: gsap.utils.random(H * 0.193, H * 0.673),
     duration: gsap.utils.random(2, 4),
     ease: 'sine.inOut',
     onComplete: wanderY,
@@ -73,17 +79,10 @@ export function initHouse(scope) {
   wanderX();
   wanderY();
 
-  /* Block center → design proportions (2/3 width, 1/3 height); edges → 0.1 / 0.9 as in the sketch */
-  const REST_X = 2 / 3, REST_Y = 1 / 3;
-  const xLeft = gsap.utils.mapRange(0, W / 2, 0.1, REST_X), xRight = gsap.utils.mapRange(W / 2, W, REST_X, 0.9);
-  const yTop = gsap.utils.mapRange(0, H / 2, 0.9, REST_Y), yBottom = gsap.utils.mapRange(H / 2, H, REST_Y, 0.1);
-  const mapX = (x) => (x <= W / 2 ? xLeft(x) : xRight(x));
-  const mapY = (y) => (y <= H / 2 ? yTop(y) : yBottom(y));
-
   function draw() {
-    const lw = W * mapX(anchor.x);
+    const lw = gsap.utils.clamp(W * MIN, W * MAX, anchor.x);
     const rw = W - lw;
-    const th = H * mapY(anchor.y);
+    const th = gsap.utils.clamp(H * MIN, H * MAX, anchor.y);
     const bh = H - th;
 
     roofLeft.setAttribute('points', `0,${th} ${lw},0 ${lw},${th}`);
