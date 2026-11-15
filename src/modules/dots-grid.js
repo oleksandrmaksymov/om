@@ -9,6 +9,8 @@
    are never cut by the block edge (instead of Osmo's shared page-wide grid). The step is stretched by
    a fraction of a pixel per axis so the dots fill the block exactly.
    ====================================================== */
+import { watchPointer } from '../core/pointer.js';
+
 export function initInteractiveDotsGridBackground(scope) {
   const elements = scope.querySelectorAll('[data-dots-canvas-init]');
   if (!elements.length) return;
@@ -194,9 +196,11 @@ export function initInteractiveDotsGridBackground(scope) {
     start();
   }
 
-  const onPointerMove = (e) => {
-    pointer.x = e.clientX;
-    pointer.y = e.clientY;
+  /* Site: called on pointer move and on scroll with the last cursor position (core/pointer.js),
+     so the grid also reacts when it scrolls under a still cursor */
+  const onPointerMove = (x, y) => {
+    pointer.x = x;
+    pointer.y = y;
 
     const inside = pointerInside();
 
@@ -214,11 +218,12 @@ export function initInteractiveDotsGridBackground(scope) {
 
     start();
   };
+  let stopWatch = null;
   const onPointerDown = () => pointer.active && setEase(press, 1);
   const onPointerUp = () => setEase(press, 0);
 
   if (hasPointer) {
-    window.addEventListener('pointermove', onPointerMove);
+    stopWatch = watchPointer(onPointerMove);
     window.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointerup', onPointerUp);
   }
@@ -247,7 +252,7 @@ export function initInteractiveDotsGridBackground(scope) {
     if (raf) cancelAnimationFrame(raf);
     raf = null;
     if (hasPointer) {
-      window.removeEventListener('pointermove', onPointerMove);
+      if (stopWatch) stopWatch();
       window.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointerup', onPointerUp);
     }

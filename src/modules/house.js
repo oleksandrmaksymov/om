@@ -1,3 +1,5 @@
+import { watchPointer } from '../core/pointer.js';
+
 /* ———— House (Research hero) — p5 sketch rebuilt as SVG + GSAP ————
    Webflow: inside the 16:9 block put an empty Div [data-house] (100% × 100%).
    The module draws an SVG with viewBox 1920×1080 — it scales to the block by itself, crisp on any screen.
@@ -112,13 +114,16 @@ export function initHouse(scope) {
     mouse.y = gsap.utils.clamp(0, H, ((clientY - r.top) / r.height) * H);
     inside = true;
   };
-  const onMove = (e) => setPoint(e.clientX, e.clientY);
   const onLeave = () => { inside = false; };
+  /* Cursor: on move and on scroll with the last cursor position (core/pointer.js) —
+     the house also reacts when it scrolls under a still cursor */
+  const onPointer = (x, y) => {
+    const r = host.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) setPoint(x, y);
+    else onLeave();
+  };
   const hasHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-  if (hasHover) {
-    host.addEventListener('pointermove', onMove);
-    host.addEventListener('pointerleave', onLeave);
-  }
+  const stopWatch = hasHover ? watchPointer(onPointer) : null;
 
   /* Touch: the house follows the finger, the page keeps scrolling (passive listeners never block
      scroll); finger lifted → smooth return like the cursor leaving */
@@ -147,10 +152,7 @@ export function initHouse(scope) {
     stop();
     st.kill();
     gsap.killTweensOf(auto);
-    if (hasHover) {
-      host.removeEventListener('pointermove', onMove);
-      host.removeEventListener('pointerleave', onLeave);
-    }
+    if (stopWatch) stopWatch();
     host.removeEventListener('touchstart', onTouch, touchOpts);
     host.removeEventListener('touchmove', onTouch, touchOpts);
     host.removeEventListener('touchend', onLeave, touchOpts);
