@@ -2,7 +2,7 @@
    INTERACTIVE DOTS GRID (Background) — Osmo
    Webflow: an absolute cover Div [data-dots-canvas-init] inside the block (Research: .dots-grid in .desert);
    optional per-grid colors: [data-dots-color-inactive] / [data-dots-color-active].
-   Osmo logic and settings, except: gap 0.5em (Osmo 1em), hoverRadius 24 (Osmo 12).
+   Osmo logic and settings, except: gap 0.5em (Osmo 1em), hoverRadius 24 (Osmo 12), dotMaxScale 2.5 (Osmo 1.75).
    Site adaptations: runs per page container (Barba) instead of DOMContentLoaded, and returns a cleanup
    that removes window listeners, observers, the animation frame and the canvases on page leave.
    Edge: each grid sits inside its block with the same free border (one gap) on all four sides, so dots
@@ -18,7 +18,7 @@ export function initInteractiveDotsGridBackground(scope) {
   const shape = 'circle'; // 'circle' or 'square'
   const dotColorInactive = 'rgba(0, 0, 0, 0.2)';
   const dotColorActive = 'rgba(0, 0, 0, 0.75)';
-  const dotMaxScale = 1.75;
+  const dotMaxScale = 2.5;
   const pressScale = 1.5;
   const hoverRadius = 24;
   const easeDuration = 0.5;
