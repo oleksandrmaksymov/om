@@ -2,14 +2,14 @@
 /* Default: bars COVER text on scroll; hover reveals individual lines.
    Background variants — the bar slides in UNDER the text (same timing), hover takes it away:
      data-highlight-marker-reveal="dark"  → white text on a black bar, hover: no bar, black text
-     data-highlight-marker-reveal="light" → black text on a grey bar,  hover: no bar, black text */
+     data-highlight-marker-reveal="light" → black text on a grey bar,  hover: the bar turns black, text white */
 
 const MARKER_COVER = { duration: 0.8, ease: 'expo.out' };
 const MARKER_STAGGER = 0.08;
 
 const BG_VARIANTS = {
   dark:  { bar: '#000000', text: '#FFFFFF', hoverText: '#000000' },
-  light: { bar: '#E5E5E5', text: '#000000', hoverText: '#000000' },
+  light: { bar: '#E5E5E5', text: '#000000', hoverText: '#FFFFFF', hoverBar: '#000000' }, // hoverBar: recolor instead of removing
 };
 
 const directionMap = {
@@ -92,12 +92,14 @@ export function initHighlightMarkerTextReveal(scope) {
           /* Hover: reveal on enter, cover on leave */
           var onEnter = function() {
             if (!covered) return;
-            gsap.to(bar, { [dirConfig.prop]: 0, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
+            if (variant && variant.hoverBar) gsap.to(bar, { backgroundColor: variant.hoverBar, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
+            else gsap.to(bar, { [dirConfig.prop]: 0, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
             if (variant) gsap.to(line, { color: variant.hoverText, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
           };
           var onLeave = function() {
             if (!covered) return;
-            gsap.to(bar, { [dirConfig.prop]: 1, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
+            if (variant && variant.hoverBar) gsap.to(bar, { backgroundColor: variant.bar, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
+            else gsap.to(bar, { [dirConfig.prop]: 1, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
             if (variant) gsap.to(line, { color: variant.text, duration: MARKER_COVER.duration, ease: MARKER_COVER.ease });
           };
 
