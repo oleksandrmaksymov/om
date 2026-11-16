@@ -63,7 +63,7 @@ export function initCircularTextScroll(scope) {
   const tl = gsap.timeline({
     scrollTrigger: {
       trigger: state.wrap,
-      start: 'bottom bottom', // block's bottom edge (line with the next block) meets the screen bottom
+      start: 'top top', // the block is one screen high (100svh) — pinned with the circle centered, like creativewebmanual
       end: '+=' + PIN_DISTANCE,
       pin: true, // the circular-text block itself
       scrub: true,
