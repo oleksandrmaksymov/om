@@ -3,8 +3,8 @@
    random characters, outline + "△x = …px" label), with:
    — hold: the effect stays while the cursor is on the item and goes back when it leaves
      (same center stagger); the snippet's yoyo flashed and reverted on its own;
-   — no layout shift: each letter keeps its own width (a wider replacement character just
-     overflows) and the frame is an outline, which takes no space (CSS);
+   — letters change width/size with the replacement character and the 1px border, as in the snippet;
+     the line masks are opened while hovered, so nothing is cut;
    — the scroll reveal ([data-split], mask: lines) is never touched: letters are split once
      inside the revealed line, never reverted mid-animation; re-split when the reveal re-splits;
    — grey palette; back to the text's own color.
@@ -46,18 +46,12 @@ export function initScrambleHover(scope) {
       splits = targets.map((line) => SplitText.create(line, { type: 'chars' }));
       chars = splits.flatMap((s) => s.chars);
       masks = lines.length ? [...item.children].map((el) => ({ el, overflow: el.style.overflow })) : [];
-      // fixed width per letter → a replacement character never moves the line
-      const widths = chars.map((c) => c.getBoundingClientRect().width);
-      chars.forEach((c, i) => {
-        c.dataset.orig = c.textContent;
-        c.style.width = widths[i] + 'px';
-        c.style.textAlign = 'center';
-      });
+      chars.forEach((c) => { c.dataset.orig = c.textContent; });
     }
 
     function restore(char) {
       char.textContent = char.dataset.orig;   // also removes the size label
-      char.style.outline = '';
+      char.style.border = '';
     }
 
     const onEnter = () => {
@@ -80,7 +74,7 @@ export function initScrambleHover(scope) {
               detail.classList.add('detail-size');
               detail.textContent = `△x = ${Math.round(char.getBoundingClientRect().width)}px`;
               char.appendChild(detail);
-              char.style.outline = `1px solid ${gsap.utils.random(COLORS)}`;
+              char.style.border = `1px solid ${gsap.utils.random(COLORS)}`;
             }
           },
         });
