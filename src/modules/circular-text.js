@@ -3,7 +3,9 @@
    Webflow: section [data-circular-text="wrap"] → Embed svg [data-circular-text="svg"] (viewBox = Figma frame,
             scales natively like the Osmo SVG; font sizes from Webflow classes in viewBox units)
             → <text data-circular-text="line" data-at="0 | 0.5"> (data-at = start, share of a line reveal).
-   The block is pinned while the letters appear one by one (steps), scrubbed both ways. */
+   The block is pinned while the letters appear one by one (steps), scrubbed both ways.
+   Letters switch with fill-opacity (SVG paint property, works on tspan, no text re-layout);
+   autoAlpha set opacity (not applied to tspan by the SVG spec) + visibility (re-lays out the text path). */
 
 const REVEAL_DURATION = 0.7; // stagger amount per line
 const PIN_DISTANCE = '150%';  // how long the block is held (share of the screen height)
@@ -41,7 +43,7 @@ export function initCircularText(scope) {
   });
 
   const lineChars = lines.map(splitLine);
-  lineChars.forEach(function(chars) { gsap.set(chars, { autoAlpha: 0 }); });
+  lineChars.forEach(function(chars) { gsap.set(chars, { fillOpacity: 0 }); });
   splits.set(scope, { wrap: wrap, lines: lines, lineChars: lineChars });
 
   return function() {
@@ -71,8 +73,8 @@ export function initCircularTextScroll(scope) {
   state.lines.forEach(function(line, i) {
     const chars = state.lineChars[i];
     if (!chars.length) return;
-    tl.fromTo(chars, { autoAlpha: 0 }, {
-      autoAlpha: 1,
+    tl.fromTo(chars, { fillOpacity: 0 }, {
+      fillOpacity: 1,
       stagger: { amount: REVEAL_DURATION, from: 'start' },
       duration: REVEAL_DURATION / chars.length,
       ease: 'steps(1)',
