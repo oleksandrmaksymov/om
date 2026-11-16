@@ -11,6 +11,7 @@ import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
 import { initShowreel } from './modules/showreel.js';
 import { initHouse } from './modules/house.js';
+import { initPulseDots } from './modules/pulse-dots.js';
 import { initInteractiveDotsGridBackground } from './modules/dots-grid.js';
 import { initTypeField } from './modules/type-field.js';
 import { initStackedImageTrail } from './modules/stacked-trail.js';
@@ -33,6 +34,9 @@ export function initPageContent(container, isFirstLoad) {
 
   /* Research: house (SVG + GSAP) in the hero block — light, drawn before the page comes in */
   addCleanup(initHouse(container));
+
+  /* Research: pulse dots — liquid dots circle (CSS keyframes in Site Head) */
+  addCleanup(initPulseDots(container));
 
   /* Research: scramble hover on the interests list ([data-scramble-hover]) */
   addCleanup(initScrambleHover(container));
