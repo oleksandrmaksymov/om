@@ -1,15 +1,17 @@
-/* ———— Scramble Hover — letters flash colors / random characters / size labels on hover ————
-   Source: the CodePen-style GSAP snippet he sent (SplitText lines + chars, mouseenter per line),
-   same timing, colors and effects.
-   Webflow: [data-scramble-hover] on the list container (Research: .experiment-item_card-full-50%);
-   the items inside keep [data-split] for the scroll reveal.
-   Site adaptations:
-   — the reveal already splits each item into lines, so letters are split only for the hover
-     (SplitText on the line, reverted when the effect ends) — the reveal split is never touched;
-   — the yoyo goes back to the text's own color (black on this page) instead of #fff;
-   — cleanup on page leave (Barba). CSS for .detail-size in Site Head. */
+/* ———— Scramble Hover — letters change color / character / get a size label while hovered ————
+   Based on the GSAP snippet he sent (stagger from the line center 0.03s, 0.3s power3.out,
+   random characters, outline + "△x = …px" label), with:
+   — hold: the effect stays while the cursor is on the item and goes back when it leaves
+     (same center stagger); the snippet's yoyo flashed and reverted on its own;
+   — no layout shift: each letter keeps its own width (a wider replacement character just
+     overflows) and the frame is an outline, which takes no space (CSS);
+   — the scroll reveal ([data-split], mask: lines) is never touched: letters are split once
+     inside the revealed line, never reverted mid-animation; re-split when the reveal re-splits;
+   — grey palette; back to the text's own color.
+   Webflow: [data-scramble-hover] on the list container (Research: .experiment-item_card-full-50%).
+   CSS for .detail-size in Site Head. Desktop pointer only. Cleanup on page leave (Barba). */
 
-const COLORS = ['#85AF00', '#FFCC00', '#FB9CFD', '#A19BFF', '#FF4C00'];
+const COLORS = ['#555555', '#727272', '#838383', '#B1B1B1', '#D3D3D3', '#E5E5E5'];
 const GLYPHS = [
   'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
   'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
@@ -20,6 +22,9 @@ const GLYPHS = [
   '_', '+', '=', '{', '}', '[', ']', '|', '\\', ':', ';', '"',
   '?', '/', '~', '`',
 ];
+const DURATION = 0.3;
+const EASE = 'power3.out';
+const STAGGER = 0.03;
 
 export function initScrambleHover(scope) {
   const items = scope.querySelectorAll('[data-scramble-hover] [data-split]');
@@ -29,69 +34,84 @@ export function initScrambleHover(scope) {
   const cleanups = [];
 
   items.forEach((item) => {
-    let split = null;      // letters split, only while the effect runs
-    let running = 0;       // letters still animating
+    let splits = [];   // letter splits inside the revealed lines
+    let chars = [];
+    let masks = [];    // { el, overflow } — line masks of the reveal, opened while hovered
 
-    const finish = () => {
-      if (--running > 0) return;
-      if (split) { split.revert(); split = null; }
-    };
+    /* letters inside the lines made by the reveal (mask → line); once, not reverted */
+    function prepare() {
+      if (chars.length && chars[0].isConnected) return;
+      const lines = item.querySelectorAll(':scope > div > div');
+      const targets = lines.length ? [...lines] : [item];
+      splits = targets.map((line) => SplitText.create(line, { type: 'chars' }));
+      chars = splits.flatMap((s) => s.chars);
+      masks = lines.length ? [...item.children].map((el) => ({ el, overflow: el.style.overflow })) : [];
+      // fixed width per letter → a replacement character never moves the line
+      const widths = chars.map((c) => c.getBoundingClientRect().width);
+      chars.forEach((c, i) => {
+        c.dataset.orig = c.textContent;
+        c.style.width = widths[i] + 'px';
+        c.style.textAlign = 'center';
+      });
+    }
+
+    function restore(char) {
+      char.textContent = char.dataset.orig;   // also removes the size label
+      char.style.outline = '';
+    }
 
     const onEnter = () => {
-      // the line created by the reveal (fallback: the item itself before/without the reveal)
-      const line = item.querySelector('.text-line') || item.firstElementChild || item;
-      if (!split) split = SplitText.create(line, { type: 'chars' });
-      const chars = split.chars;
-      const base = getComputedStyle(item).color;
-      const middleIndex = (chars.length - 1) / 2;
-
+      prepare();
+      masks.forEach((m) => { m.el.style.overflow = 'visible'; });   // let labels show below the letters
+      const middle = (chars.length - 1) / 2;
       chars.forEach((char, index) => {
-        if (!char.dataset.orig) char.dataset.orig = char.textContent;
-        const distanceFromCenter = Math.abs(index - middleIndex);
-        running++;
-
-        gsap.fromTo(char, { color: base }, {
+        gsap.to(char, {
           color: gsap.utils.random(COLORS),
-          ease: 'power3.out',
-          duration: 0.3,
-          delay: distanceFromCenter * 0.03,
-          repeat: 1,
-          yoyo: true,
+          ease: EASE,
+          duration: DURATION,
+          delay: Math.abs(index - middle) * STAGGER,
           overwrite: 'auto',
-
           onStart: () => {
             const randomNum = gsap.utils.random(['0', '1']);
             const randomNumThree = gsap.utils.random(['0', '1', '2']);
-            // alternative characters
             if (randomNum == 1) char.textContent = gsap.utils.random(GLYPHS);
-            // size details
             if (randomNumThree == 1) {
               const detail = document.createElement('span');
               detail.classList.add('detail-size');
-              detail.textContent = `△x = ${char.clientWidth}px`;
+              detail.textContent = `△x = ${Math.round(char.getBoundingClientRect().width)}px`;
               char.appendChild(detail);
-            }
-            // borders
-            if (randomNumThree == 1) {
-              char.style.border = `1px solid ${gsap.utils.random(COLORS)}`;
+              char.style.outline = `1px solid ${gsap.utils.random(COLORS)}`;
             }
           },
+        });
+      });
+    };
 
-          onComplete: () => {
-            char.textContent = char.dataset.orig;
-            char.style.border = 'none';
-            finish();
-          },
-          onInterrupt: finish,
+    const onLeave = () => {
+      if (!chars.length) return;
+      const base = getComputedStyle(item).color;
+      const middle = (chars.length - 1) / 2;
+      masks.forEach((m) => { m.el.style.overflow = m.overflow; });
+      chars.forEach((char, index) => {
+        gsap.to(char, {
+          color: base,
+          ease: EASE,
+          duration: DURATION,
+          delay: Math.abs(index - middle) * STAGGER,
+          overwrite: 'auto',
+          onStart: () => restore(char),
         });
       });
     };
 
     item.addEventListener('mouseenter', onEnter);
+    item.addEventListener('mouseleave', onLeave);
     cleanups.push(() => {
       item.removeEventListener('mouseenter', onEnter);
-      if (split) { gsap.killTweensOf(split.chars); split.revert(); split = null; }
-      running = 0;
+      item.removeEventListener('mouseleave', onLeave);
+      gsap.killTweensOf(chars);
+      splits.forEach((s) => s.revert());
+      splits = []; chars = []; masks = [];
     });
   });
 
