@@ -1,6 +1,6 @@
 /* ———— Scramble Hover — letters change color / character / get a size label while hovered ————
    Based on the GSAP snippet he sent (stagger from the line center 0.03s, 0.3s power3.out,
-   random characters, outline + "△x = …px" label), with:
+   random characters, 1px frame (size labels removed)), with:
    — hold: the effect stays while the cursor is on the item and goes back when it leaves
      (same center stagger); the snippet's yoyo flashed and reverted on its own;
    — letters change width/size with the replacement character and the 1px border, as in the snippet;
@@ -22,6 +22,7 @@ const GLYPHS = [
   '_', '+', '=', '{', '}', '[', ']', '|', '\\', ':', ';', '"',
   '?', '/', '~', '`',
 ];
+const HOVER_COLOR = '#FFFFFF'; // letters while hovered (COLORS stay for the frames)
 const DURATION = 0.3;
 const EASE = 'power3.out';
 const STAGGER = 0.03;
@@ -60,7 +61,7 @@ export function initScrambleHover(scope) {
       const middle = (chars.length - 1) / 2;
       chars.forEach((char, index) => {
         gsap.to(char, {
-          color: gsap.utils.random(COLORS),
+          color: HOVER_COLOR,
           ease: EASE,
           duration: DURATION,
           delay: Math.abs(index - middle) * STAGGER,
@@ -70,10 +71,6 @@ export function initScrambleHover(scope) {
             const randomNumThree = gsap.utils.random(['0', '1', '2']);
             if (randomNum == 1) char.textContent = gsap.utils.random(GLYPHS);
             if (randomNumThree == 1) {
-              const detail = document.createElement('span');
-              detail.classList.add('detail-size');
-              detail.textContent = `△x = ${Math.round(char.getBoundingClientRect().width)}px`;
-              char.appendChild(detail);
               char.style.border = `1px solid ${gsap.utils.random(COLORS)}`;
             }
           },
