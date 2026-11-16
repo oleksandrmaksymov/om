@@ -14,6 +14,7 @@ import { initHouse } from './modules/house.js';
 import { initInteractiveDotsGridBackground } from './modules/dots-grid.js';
 import { initTypeField } from './modules/type-field.js';
 import { initStackedImageTrail } from './modules/stacked-trail.js';
+import { initScrambleHover } from './modules/scramble-hover.js';
 
 
 /* ======================================================
@@ -32,6 +33,9 @@ export function initPageContent(container, isFirstLoad) {
 
   /* Research: house (SVG + GSAP) in the hero block — light, drawn before the page comes in */
   addCleanup(initHouse(container));
+
+  /* Research: scramble hover on the interests list ([data-scramble-hover]) */
+  addCleanup(initScrambleHover(container));
 
   /* Research: Osmo Interactive Dots Grid over the desert image ([data-dots-canvas-init]) */
   addCleanup(initInteractiveDotsGridBackground(container));
