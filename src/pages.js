@@ -14,7 +14,7 @@ import { initHouse } from './modules/house.js';
 import { initPulseDots } from './modules/pulse-dots.js';
 import { initInteractiveDotsGridBackground } from './modules/dots-grid.js';
 import { initTypeField } from './modules/type-field.js';
-import { initStackedImageTrail } from './modules/stacked-trail.js';
+import { initCursorLabel } from './modules/cursor-label.js';
 import { initScrambleHover } from './modules/scramble-hover.js';
 
 
@@ -86,10 +86,10 @@ export function initPageLayout(container) {
     addCleanup(initFlipOnScroll(container));
   }
 
-  /* Research: cursor experiment — type field (sticky, cursor rows) + Osmo stacked image trail.
+  /* Research: cursor experiment — type field (sticky, cursor rows) + cursor label (text follows the cursor).
      Both measure the real layout, so they are created after the transition, like Flip */
   addCleanup(initTypeField(container));
-  addCleanup(initStackedImageTrail(container));
+  addCleanup(initCursorLabel(container));
 
   /* Research: pulse dots — built after the transition (300 cells + CSS animations), paused off screen */
   addCleanup(initPulseDots(container));
