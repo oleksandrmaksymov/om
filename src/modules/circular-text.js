@@ -63,11 +63,7 @@ export function initCircularTextScroll(scope) {
   const tl = gsap.timeline({
     scrollTrigger: {
       trigger: state.wrap,
-      /* desktop / tablet / landscape phone: the block is one screen high (100svh) — pinned with the circle
-         centered, like creativewebmanual. Portrait phone (≤479px, Webflow): the block is a square — pinned
-         as soon as it is fully on screen (bottom at the screen bottom), so the next block follows right
-         after the reveal, no empty screen. A function: re-checked on every ScrollTrigger refresh (GSAP docs) */
-      start: function() { return window.matchMedia('(max-width: 479px)').matches ? 'bottom bottom' : 'top top'; },
+      start: 'top top', // the block is one screen high (100svh) on every screen — pinned with the circle centered, like creativewebmanual
       end: '+=' + PIN_DISTANCE,
       pin: true, // the circular-text block itself
       scrub: true,
