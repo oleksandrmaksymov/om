@@ -3,9 +3,10 @@
    Background variants — the bar slides in UNDER the text (same timing), hover takes it away:
      data-highlight-marker-reveal="dark"  → white text on a black bar, hover: no bar, black text
      data-highlight-marker-reveal="light" → black text on a grey bar,  hover: no bar, black text
-   Inside a Stacked Trail area ([data-stacked-trail-area], Research cursor text): the same reveal plays
-   when the cursor enters the area and reverses when it leaves (events from stacked-trail.js),
-   instead of the scroll start. */
+   Inside a Stacked Trail area ([data-stacked-trail-area], Research cursor text): the bars grow with the
+   same tween as the scroll reveal when the cursor enters the area and shrink with the same tween when
+   it leaves (events from stacked-trail.js) — tweens from the current value, not a reversed timeline
+   (reversed expo.out starts slow). */
 
 const MARKER_COVER = { duration: 0.8, ease: 'expo.out' };
 const MARKER_STAGGER = 0.08;
@@ -118,17 +119,28 @@ export function initHighlightMarkerTextReveal(scope) {
 
         instance.timeline = tl;
 
-        /* Cursor text: reveal with the cursor in the area, reverse when it leaves */
+        /* Cursor text: reveal with the cursor in the area, hide when it leaves */
         if (trailArea) {
-          var onAreaEnter = function() { tl.play(); };
-          var onAreaLeave = function() { tl.reverse(); };
+          tl.kill();
+          var bars = el.querySelectorAll('.highlight-marker-bar');
+          var markerTo = function(value) {
+            gsap.to(bars, {
+              [dirConfig.prop]: value,
+              duration: MARKER_COVER.duration,
+              ease: MARKER_COVER.ease,
+              stagger: MARKER_STAGGER,
+              overwrite: true,
+            });
+          };
+          var onAreaEnter = function() { markerTo(1); };
+          var onAreaLeave = function() { markerTo(0); };
           trailArea.addEventListener('stackedtrail:enter', onAreaEnter);
           trailArea.addEventListener('stackedtrail:leave', onAreaLeave);
           instance.listeners.push(
             { el: trailArea, type: 'stackedtrail:enter', fn: onAreaEnter },
             { el: trailArea, type: 'stackedtrail:leave', fn: onAreaLeave }
           );
-          if (trailArea.getAttribute('data-stacked-trail-area') === 'hover') tl.play();
+          if (trailArea.getAttribute('data-stacked-trail-area') === 'hover') onAreaEnter();
           return;
         }
 

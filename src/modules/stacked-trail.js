@@ -8,6 +8,7 @@
    (Osmo does the same with document mousemove + window scroll);
    each item is kept fully inside the area: its target is clamped by half its own size, so at the
    area edges it lines up with the edge instead of going out (Research: one text item, one line);
+   on enter the items start right under the cursor (no flight from the last exit point);
    the area also tells its content when the cursor enters / leaves it (CustomEvent 'stackedtrail:enter'
    / 'stackedtrail:leave') — the text inside appears like the Practice text (highlight-marker.js).
    ====================================================== */
@@ -74,21 +75,26 @@ export function initStackedImageTrail(scope) {
         lastClientY >= rect.top &&
         lastClientY <= rect.bottom;
 
-      if (inside && !isHovering) {
-        isHovering = true;
-        area.setAttribute('data-stacked-trail-area', 'hover');
-        area.dispatchEvent(new CustomEvent('stackedtrail:enter'));
-      } else if (!inside && isHovering) {
-        isHovering = false;
-        area.setAttribute('data-stacked-trail-area', '');
-        area.dispatchEvent(new CustomEvent('stackedtrail:leave'));
+      if (!inside) {
+        if (isHovering) {
+          isHovering = false;
+          area.setAttribute('data-stacked-trail-area', '');
+          area.dispatchEvent(new CustomEvent('stackedtrail:leave'));
+        }
+        return;
       }
-
-      if (!inside) return;
 
       var pos = getPercentFromClient(lastClientX, lastClientY);
       mouseX = pos.x;
       mouseY = pos.y;
+
+      if (!isHovering) {
+        isHovering = true;
+        /* site: the items start right under the cursor — no flight from where the cursor left last time */
+        states.forEach(function (state) { state.x = mouseX; state.y = mouseY; });
+        area.setAttribute('data-stacked-trail-area', 'hover');
+        area.dispatchEvent(new CustomEvent('stackedtrail:enter'));
+      }
     }
 
     /* move + scroll with the last cursor position */
