@@ -1,5 +1,8 @@
 /* ———— Cursor Marquee ———— */
+/* Desktop pointer only: on touch screens a tap fires mouseenter first, the marquee text changes, and
+   iOS Safari takes that tap as a hover (no navigation until the second tap) — so no hover there */
 export function initCursorMarqueeEffect(scope) {
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
   const hoverOutDelay = 0.4;
   const followDuration = 0.4;
   const speedMultiplier = 5;

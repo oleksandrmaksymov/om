@@ -38,6 +38,7 @@ export function initHighlightMarkerTextReveal(scope) {
   if (!elements.length) return function() {};
 
   var instances = [];
+  var canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   elements.forEach(function(el) {
     var direction   = el.getAttribute('data-marker-direction') || 'right';
@@ -107,7 +108,9 @@ export function initHighlightMarkerTextReveal(scope) {
           };
 
           /* dark / light (Research Practice): reveal only, no hover — trying it without */
-          if (!variant) {
+          /* hover only with a real pointer — on touch a tap would first move the bar and iOS Safari
+             then treats the tap as a hover, so a link under it would need a second tap */
+          if (!variant && canHover) {
             line.addEventListener('mouseenter', onEnter);
             line.addEventListener('mouseleave', onLeave);
             instance.listeners.push(
