@@ -1,4 +1,4 @@
-/* ———— Cursor Label — a text label that follows the cursor inside its area (Research → cursor-experiment) ————
+/* ———— Cursor Label — a text label that follows the cursor inside its area (Research → interactive-experiences) ————
    Replaces the Osmo Stacking Image Trail (made for a stack of images) with a single label:
    — follows the cursor with gsap.quickTo on x / y (GSAP's documented way for cursor followers: transforms,
      no layout per frame);

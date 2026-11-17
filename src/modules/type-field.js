@@ -1,4 +1,4 @@
-/* ———— Type Field — cursor-reactive typography column (Research → cursor-experiment) ————
+/* ———— Type Field — cursor-reactive typography column (Research → interactive-experiences) ————
    Last iteration from Home (tag v24): same physics and settings.
    Webflow: div.type-field [data-type-field] [data-text="…"], first child of the block it sticks in
    (position: sticky set in Webflow). Desktop only (≥992px).
