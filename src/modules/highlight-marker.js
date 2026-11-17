@@ -2,7 +2,10 @@
 /* Default: bars COVER text on scroll; hover reveals individual lines.
    Background variants — the bar slides in UNDER the text (same timing), hover takes it away:
      data-highlight-marker-reveal="dark"  → white text on a black bar, hover: no bar, black text
-     data-highlight-marker-reveal="light" → black text on a grey bar,  hover: no bar, black text */
+     data-highlight-marker-reveal="light" → black text on a grey bar,  hover: no bar, black text
+   Inside a Stacked Trail area ([data-stacked-trail-area], Research cursor text): the same reveal plays
+   when the cursor enters the area and reverses when it leaves (events from stacked-trail.js),
+   instead of the scroll start. */
 
 const MARKER_COVER = { duration: 0.8, ease: 'expo.out' };
 const MARKER_STAGGER = 0.08;
@@ -47,6 +50,7 @@ export function initHighlightMarkerTextReveal(scope) {
     var variant = BG_VARIANTS[el.getAttribute('data-highlight-marker-reveal')] || null;
     if (variant) color = variant.bar;
 
+    var trailArea = el.closest('[data-stacked-trail-area]');
     var instance = { timeline: null, scrollTrigger: null, split: null, listeners: [] };
     var covered = false;
 
@@ -112,6 +116,22 @@ export function initHighlightMarkerTextReveal(scope) {
           }
         });
 
+        instance.timeline = tl;
+
+        /* Cursor text: reveal with the cursor in the area, reverse when it leaves */
+        if (trailArea) {
+          var onAreaEnter = function() { tl.play(); };
+          var onAreaLeave = function() { tl.reverse(); };
+          trailArea.addEventListener('stackedtrail:enter', onAreaEnter);
+          trailArea.addEventListener('stackedtrail:leave', onAreaLeave);
+          instance.listeners.push(
+            { el: trailArea, type: 'stackedtrail:enter', fn: onAreaEnter },
+            { el: trailArea, type: 'stackedtrail:leave', fn: onAreaLeave }
+          );
+          if (trailArea.getAttribute('data-stacked-trail-area') === 'hover') tl.play();
+          return;
+        }
+
         var st = ScrollTrigger.create({
           trigger: el,
           start: scrollStart,
@@ -119,7 +139,6 @@ export function initHighlightMarkerTextReveal(scope) {
           onEnter: function() { tl.play(); },
         });
 
-        instance.timeline = tl;
         instance.scrollTrigger = st;
       },
     });

@@ -7,7 +7,9 @@
    the area is on screen (Osmo runs it always); cursor move + scroll via core/pointer.js
    (Osmo does the same with document mousemove + window scroll);
    each item is kept fully inside the area: its target is clamped by half its own size, so at the
-   area edges it lines up with the edge instead of going out (Research: one text item, one line).
+   area edges it lines up with the edge instead of going out (Research: one text item, one line);
+   the area also tells its content when the cursor enters / leaves it (CustomEvent 'stackedtrail:enter'
+   / 'stackedtrail:leave') — the text inside appears like the Practice text (highlight-marker.js).
    ====================================================== */
 import { watchPointer } from '../core/pointer.js';
 
@@ -75,9 +77,11 @@ export function initStackedImageTrail(scope) {
       if (inside && !isHovering) {
         isHovering = true;
         area.setAttribute('data-stacked-trail-area', 'hover');
+        area.dispatchEvent(new CustomEvent('stackedtrail:enter'));
       } else if (!inside && isHovering) {
         isHovering = false;
         area.setAttribute('data-stacked-trail-area', '');
+        area.dispatchEvent(new CustomEvent('stackedtrail:leave'));
       }
 
       if (!inside) return;
@@ -97,6 +101,7 @@ export function initStackedImageTrail(scope) {
     if (area.matches(':hover')) {
       isHovering = true;
       area.setAttribute('data-stacked-trail-area', 'hover');
+      area.dispatchEvent(new CustomEvent('stackedtrail:enter'));
     }
 
     function step() {
