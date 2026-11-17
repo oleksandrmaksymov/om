@@ -35,9 +35,6 @@ export function initPageContent(container, isFirstLoad) {
   /* Research: house (SVG + GSAP) in the hero block — light, drawn before the page comes in */
   addCleanup(initHouse(container));
 
-  /* Research: pulse dots — liquid dots circle (CSS keyframes in Site Head) */
-  addCleanup(initPulseDots(container));
-
   /* Research: scramble hover on the interests list ([data-scramble-hover]) */
   addCleanup(initScrambleHover(container));
 
@@ -93,6 +90,9 @@ export function initPageLayout(container) {
      Both measure the real layout, so they are created after the transition, like Flip */
   addCleanup(initTypeField(container));
   addCleanup(initStackedImageTrail(container));
+
+  /* Research: pulse dots — built after the transition (300 cells + CSS animations), paused off screen */
+  addCleanup(initPulseDots(container));
 
   /* Layout modules are created after the text reveals (out of page order), and a pin
      shifts everything below it — refresh ScrollTriggers top-to-bottom

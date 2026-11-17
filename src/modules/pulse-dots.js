@@ -1,21 +1,18 @@
 /* ———— Pulse Dots — liquid dots in a circle (Research) ————
    Based on the CodePen he sent (inspired by pinterest.com/pin/10062799163180124): a 20×20 grid,
    every cell has two dots (::before / ::after, CSS keyframes in Site Head) that flow into the next
-   cell; random delay + random rotation (the direction of the flow); SVG "liquid" filter
-   (feGaussianBlur + feColorMatrix alpha threshold) merges the dots.
+   cell; random delay + random rotation (the direction of the flow).
    Changes for the site:
    — the dots form a circle, not a square: only cells whose center is inside the circle get dots;
      a cell may only flow into a neighbour that is also inside → the edge always stays round;
    — the pug template (random delays / rotations) is done here in JS;
-   — sizes from the block (container units in Site Head), blur scaled to the dot size
-     (the pen's 4px was for 80vmin; filter units are px, so it is set from the measured dot);
-   — paused while the block is off screen (ScrollTrigger onToggle), cleanup on page leave (Barba).
+   — "liquid" merge with CSS filter: blur() contrast() in Site Head instead of the pen's SVG filter
+     (CSS px in every browser — Safari on phones ran the SVG blur ~3× weaker; GPU instead of CPU);
+   — built after the page transition (layout stage), starts paused, runs only while on screen
+     (ScrollTrigger onToggle); cleanup on page leave (Barba).
    Webflow: Div.pulse-dots [data-pulse-dots] (grey #AFAFAF, flex center) — the grid is built inside. */
-
 const RANGE = 20;            // cells per side (as in the pen)
 const MAX_DELAY = 5000;      // ms, as in the pen
-const BLUR_RATIO = 0.15;     // pen: 4px blur on a ~27px dot
-const NS = 'http://www.w3.org/2000/svg';
 /* rotation → direction of the flow (rotate() in CSS: 0 right, 90 down, 180 left, 270 up) */
 const DIRS = [
   { deg: 0, dx: 1, dy: 0 },
@@ -23,8 +20,6 @@ const DIRS = [
   { deg: 180, dx: -1, dy: 0 },
   { deg: 270, dx: 0, dy: -1 },
 ];
-
-let uid = 0;
 
 const inside = (col, row) => {
   if (col < 0 || row < 0 || col >= RANGE || row >= RANGE) return false;
@@ -39,22 +34,12 @@ export function initPulseDots(scope) {
   const cleanups = [];
 
   blocks.forEach((block) => {
-    const id = 'pulse-dots-liquid-' + (++uid);   // unique: two pages exist during a Barba transition
-
-    /* filter (the pen's svg#liquid) */
-    const svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('class', 'pulse-dots__filter');
-    svg.setAttribute('aria-hidden', 'true');
-    svg.innerHTML =
-      `<filter id="${id}"><feGaussianBlur in="SourceGraphic" stdDeviation="4"/>` +
-      '<feColorMatrix values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 20 -10"/></filter>';
-    const blur = svg.querySelector('feGaussianBlur');
+    block.setAttribute('data-pulse-dots-paused', '');   // start paused, run when on screen
 
     /* grid */
     const grid = document.createElement('div');
     grid.className = 'pulse-dots__grid';
     grid.setAttribute('aria-hidden', 'true');
-    grid.style.filter = `url(#${id})`;
     const frag = document.createDocumentFragment();
     for (let row = 0; row < RANGE; row++) {
       for (let col = 0; col < RANGE; col++) {
@@ -71,16 +56,7 @@ export function initPulseDots(scope) {
       }
     }
     grid.appendChild(frag);
-    block.append(svg, grid);
-
-    /* blur follows the dot size (filter values are px) */
-    const setBlur = () => {
-      const dot = grid.offsetWidth / RANGE;
-      if (dot) blur.setAttribute('stdDeviation', (dot * BLUR_RATIO).toFixed(2));
-    };
-    const ro = new ResizeObserver(setBlur);
-    ro.observe(grid);
-    setBlur();
+    block.appendChild(grid);
 
     /* run only while on screen */
     const st = ScrollTrigger.create({
@@ -92,10 +68,8 @@ export function initPulseDots(scope) {
     block.toggleAttribute('data-pulse-dots-paused', !st.isActive);
 
     cleanups.push(() => {
-      ro.disconnect();
       st.kill();
       block.removeAttribute('data-pulse-dots-paused');
-      svg.remove();
       grid.remove();
     });
   });
