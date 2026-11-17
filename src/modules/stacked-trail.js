@@ -5,7 +5,9 @@
    Osmo logic and settings unchanged (leadEase 0.25, trailEase 0.16, pathFollow 1).
    Site adaptations: runs per page container (Barba) with a cleanup; the frame loop runs only while
    the area is on screen (Osmo runs it always); cursor move + scroll via core/pointer.js
-   (Osmo does the same with document mousemove + window scroll).
+   (Osmo does the same with document mousemove + window scroll);
+   each item is kept fully inside the area: its target is clamped by half its own size, so at the
+   area edges it lines up with the edge instead of going out (Research: one text item, one line).
    ====================================================== */
 import { watchPointer } from '../core/pointer.js';
 
@@ -31,8 +33,23 @@ export function initStackedImageTrail(scope) {
 
     var states = cards.map(function (card, index) {
       card.style.zIndex = cards.length - index;
-      return { el: card, x: 50, y: 50 };
+      return { el: card, x: 50, y: 50, hx: 0, hy: 0 };
     });
+
+    /* sizes for the edge clamp (layout size, not affected by the hover scale) — cached, updated on resize */
+    function measure() {
+      var aw = area.offsetWidth;
+      var ah = area.offsetHeight;
+      if (!aw || !ah) return;
+      states.forEach(function (state) {
+        state.hx = Math.min(50, (state.el.offsetWidth / 2 / aw) * 100);
+        state.hy = Math.min(50, (state.el.offsetHeight / 2 / ah) * 100);
+      });
+    }
+    var ro = new ResizeObserver(measure);
+    ro.observe(area);
+    cards.forEach(function (card) { ro.observe(card); });
+    measure();
 
     function getPercentFromClient(clientX, clientY) {
       var rect = area.getBoundingClientRect();
@@ -96,6 +113,9 @@ export function initStackedImageTrail(scope) {
           targetY = prev.y * pathFollow + mouseY * (1 - pathFollow);
         }
 
+        targetX = Math.min(100 - state.hx, Math.max(state.hx, targetX));
+        targetY = Math.min(100 - state.hy, Math.max(state.hy, targetY));
+
         var ease = index === 0 ? leadEase : trailEase;
         state.x += (targetX - state.x) * ease;
         state.y += (targetY - state.y) * ease;
@@ -126,6 +146,7 @@ export function initStackedImageTrail(scope) {
       if (raf) cancelAnimationFrame(raf);
       raf = null;
       stopWatch();
+      ro.disconnect();
       st.kill();
       area.setAttribute('data-stacked-trail-area', '');
       states.forEach(function (s) { s.el.style.left = ''; s.el.style.top = ''; s.el.style.zIndex = ''; });
