@@ -17,8 +17,6 @@
    — buffers 8-bit like Unicorn (only the trail simulation is half-float): the passes' dither can go
      slightly below 0, and a float buffer keeps it → pow() of a negative value is NaN on Apple GPUs
      and the whole frame turns black; an 8-bit buffer clamps it to 0;
-   — the cursor only draws the trail inside the dots' zone (the hexagon of the 6 dots + ZONE_MARGIN),
-     so the glow / liquid appears on and between the dots, never over the empty field;
    — the scene is static without the cursor, so frames are drawn only while the cursor moves and
      150 frames after (the trail fades out in ~40) — no GPU work at rest.
    ====================================================== */
@@ -27,10 +25,6 @@ import * as S from './dots-fx-shaders.js';
 const FPS = 60;
 const DPI_MAX = 1.5;          // scene option dpi
 const TRAIL_SPEED = 1;        // mouse trail layer "speed"
-/* the dots' centers (scene: 160px circles on the 1920 artboard), fractions of the block, y down */
-const DOT_R = 80 / 1920;
-const DOTS = [[0.3017, 0.5], [0.4216, 0.6183], [0.5783, 0.6183], [0.6983, 0.5], [0.5783, 0.3817], [0.4216, 0.3817]];
-const ZONE_MARGIN = DOT_R;    // free space around the dots where the cursor still reacts (half a dot diameter)
 const IDLE_FRAMES = 150;      // frames drawn after the last cursor move (the trail fades out in ~40)
 
 const IDENTITY = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
@@ -225,32 +219,12 @@ export function initDotsFx(scope) {
   }
 
   /* ——— cursor: position in texture coords (y up), kept while outside ——— */
-  /* distance from a point to the dots' hexagon (0 inside), in block fractions */
-  function zoneDist(x, y) {
-    let inside = true, min = Infinity;
-    for (let i = 0; i < DOTS.length; i++) {
-      const [ax, ay] = DOTS[i], [bx, by] = DOTS[(i + 1) % DOTS.length];
-      const ex = bx - ax, ey = by - ay;
-      if (ex * (y - ay) - ey * (x - ax) < 0) inside = false;
-      const t = Math.max(0, Math.min(1, ((x - ax) * ex + (y - ay) * ey) / (ex * ex + ey * ey)));
-      min = Math.min(min, Math.hypot(x - (ax + ex * t), y - (ay + ey * t)));
-    }
-    return inside ? 0 : min;
-  }
-  const signedArea = DOTS.reduce((a, [x1, y1], i) => { const [x2, y2] = DOTS[(i + 1) % DOTS.length]; return a + x1 * y2 - x2 * y1; }, 0);
-  if (signedArea < 0) DOTS.reverse();   // keep the inside test's winding consistent
-
   let idle = IDLE_FRAMES;   // frames since the last cursor move
-  let inZone = false;
   const onMove = (e) => {
     const r = canvas.getBoundingClientRect();
     if (!r.width || !r.height) return;
-    const fx = (e.clientX - r.left) / r.width;
-    const fy = (e.clientY - r.top) / r.height;
-    if (zoneDist(fx, fy) > DOT_R + ZONE_MARGIN) { inZone = false; return; }   // outside: no new trail
-    mouse.x = fx;
-    mouse.y = 1 - fy;
-    if (!inZone) { prevMouse.x = mouse.x; prevMouse.y = mouse.y; inZone = true; }   // entering: no streak from the exit point
+    mouse.x = (e.clientX - r.left) / r.width;
+    mouse.y = 1 - (e.clientY - r.top) / r.height;
     idle = 0;
     start();
   };
