@@ -4,7 +4,8 @@
    Webflow: <div data-dots-fx> inside a square block (size = block).
    Layers (as in Unicorn, same order and resolution per pass):
      1. bg (black) + 6 shapes (circles 160px on a 1920 artboard) — static, drawn once per resize
-     2. mouse trail — ping-pong simulation (half-float, full res) + composite over the scene
+     2. mouse trail — ping-pong simulation (half-float, ½ res) + composite over the scene;
+        reacts and glows only near the circles (masks in the scene's shader)
      3. blur — 4 passes (0.25, 0.25, 0.5, 0.5)
      4. bloom — threshold 0.5 → diamond blur 0.25 ×2 → blur 0.5 ×2 → composite 1.0
      5. gradient map → screen
@@ -173,7 +174,7 @@ export function initDotsFx(scope) {
     const s = (k) => [Math.max(1, Math.round(W * k)), Math.max(1, Math.round(H * k))];
     T = {
       a: target(W, H), b: target(W, H),                 // scene ping (bg + shapes)
-      pp: [target(W, H, true), target(W, H, true)],     // mouse trail simulation
+      pp: [target(...s(0.5), true), target(...s(0.5), true)],   // mouse trail simulation (half-float, ½ res as in the scene)
       trail: target(W, H),
       blur1: target(...s(1)), blur2: target(...s(1)), blur3: target(...s(1)), blur4: target(...s(1)),
       bth: target(...s(1)), bd1: target(...s(1)), bd2: target(...s(1)),
