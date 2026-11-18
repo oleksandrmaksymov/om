@@ -7,7 +7,7 @@
    the filter inside the SVG — everything is in viewBox units, so dots, gaps and blur scale together
    and look the same in every browser (an SVG filter on HTML content ran weaker in Safari on phones).
    Changes to the pen:
-   — the dots form a circle (60% of the block): only cells whose center is inside
+   — the dots form a circle (63% of the block): only cells whose center is inside
      the circle get dots; a cell may only flow into a neighbour that is also inside → round edge;
    — the pug template (random delays / rotations) is done here in JS;
    — built after the page transition (layout stage), starts paused, runs only while on screen
@@ -17,7 +17,7 @@
 const NS = 'http://www.w3.org/2000/svg';
 const VIEW = 1000;              // viewBox 1000 × 1000 (the block is square)
 const RANGE = 20;               // cells per side (as in the pen)
-const GRID = VIEW * 0.6;        // the circle: 60% of the block
+const GRID = VIEW * 0.63;       // the circle: 63% of the block (60% + 5% radius)
 const GAP = GRID * 0.00625;     // pen: gap 0.5vmin on an 80vmin grid
 const STEP = GRID / RANGE;      // cell step = dot + gap (the distance a dot flows)
 const DOT = STEP - GAP;         // pen: grid / range − gap
