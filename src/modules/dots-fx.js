@@ -22,6 +22,7 @@
      150 frames after (the trail fades out in ~40) — no GPU work at rest.
    ====================================================== */
 import * as S from './dots-fx-shaders.js';
+import { watchPointer } from '../core/pointer.js';
 
 const FPS = 60;
 const DPI_MAX = 1.5;          // scene option dpi
@@ -219,17 +220,19 @@ export function initDotsFx(scope) {
     prevMouse.x = mouse.x; prevMouse.y = mouse.y;
   }
 
-  /* ——— cursor: position in texture coords (y up), kept while outside ——— */
+  /* ——— cursor: position in texture coords (y up), kept while outside.
+     On mouse move and on scroll with the last cursor position (core/pointer.js) — the block also
+     reacts when it scrolls under a still cursor, like the other cursor effects ——— */
   let idle = IDLE_FRAMES;   // frames since the last cursor move
-  const onMove = (e) => {
+  const onPointer = (clientX, clientY) => {
     const r = canvas.getBoundingClientRect();
     if (!r.width || !r.height) return;
-    mouse.x = (e.clientX - r.left) / r.width;
-    mouse.y = 1 - (e.clientY - r.top) / r.height;
+    mouse.x = (clientX - r.left) / r.width;
+    mouse.y = 1 - (clientY - r.top) / r.height;
     idle = 0;
     start();
   };
-  window.addEventListener('pointermove', onMove, { passive: true });
+  const stopWatch = watchPointer(onPointer);
 
   /* ——— loop: 60 fps cap, only while on screen and while the cursor moved recently ——— */
   let raf = null, last = 0, visible = false;
@@ -275,7 +278,7 @@ export function initDotsFx(scope) {
     clearTimeout(resizeTimer);
     io.disconnect();
     ro.disconnect();
-    window.removeEventListener('pointermove', onMove);
+    stopWatch();
     freeTargets();
     programs.forEach((pr) => gl.deleteProgram(pr.p));
     gl.deleteBuffer(pos); gl.deleteBuffer(uvb); gl.deleteVertexArray(vao);
