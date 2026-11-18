@@ -12,6 +12,7 @@ import { initCircularText, initCircularTextScroll } from './modules/circular-tex
 import { initShowreel } from './modules/showreel.js';
 import { initHouse } from './modules/house.js';
 import { initPulseDots } from './modules/pulse-dots.js';
+import { initDotsFx } from './modules/dots-fx.js';
 import { initInteractiveDotsGridBackground } from './modules/dots-grid.js';
 import { initTypeField } from './modules/type-field.js';
 import { initCursorLabel } from './modules/cursor-label.js';
@@ -93,6 +94,9 @@ export function initPageLayout(container) {
 
   /* Research: pulse dots — built after the transition (300 cells + CSS animations), paused off screen */
   addCleanup(initPulseDots(container));
+
+  /* Research: Dots FX — WebGL2 port of the Unicorn scene "Dots" (test block under the video), after the transition */
+  addCleanup(initDotsFx(container));
 
   /* Layout modules are created after the text reveals (out of page order), and a pin
      shifts everything below it — refresh ScrollTriggers top-to-bottom
