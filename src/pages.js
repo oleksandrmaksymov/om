@@ -13,6 +13,7 @@ import { initShowreel } from './modules/showreel.js';
 import { initHouse } from './modules/house.js';
 import { initPulseDots } from './modules/pulse-dots.js';
 import { initDotsFx } from './modules/dots-fx.js';
+import { initOmFx } from './modules/om-fx.js';
 import { initInteractiveDotsGridBackground } from './modules/dots-grid.js';
 import { initTypeField } from './modules/type-field.js';
 import { initCursorLabel } from './modules/cursor-label.js';
@@ -97,6 +98,9 @@ export function initPageLayout(container) {
 
   /* Research: Dots FX — WebGL2 port of the Unicorn scene "Dots" (test block under the video), after the transition */
   addCleanup(initDotsFx(container));
+
+  /* Research: OM FX — WebGL2 port of the Unicorn scene "om" (photo, noise blur, 24 stripes, duotone), after the transition */
+  addCleanup(initOmFx(container));
 
   /* Layout modules are created after the text reveals (out of page order), and a pin
      shifts everything below it — refresh ScrollTriggers top-to-bottom
