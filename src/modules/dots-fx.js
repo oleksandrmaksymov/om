@@ -243,8 +243,15 @@ export function initDotsFx(scope) {
     frame();
     idle++;
   }
+  /* (re)start: the trail segment starts at the current cursor — Unicorn draws every frame, so its
+     previous mouse position is always one frame old; after a pause ours would be where the cursor was
+     when drawing stopped, and the first frame drew a long streak across the empty field to it */
   function start() {
-    if (visible && !raf) { last = 0; raf = requestAnimationFrame(loop); }
+    if (visible && !raf) {
+      prevMouse.x = mouse.x; prevMouse.y = mouse.y;
+      last = 0;
+      raf = requestAnimationFrame(loop);
+    }
   }
   const io = new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
