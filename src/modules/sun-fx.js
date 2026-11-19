@@ -15,6 +15,7 @@ import * as S from './sun-fx-shaders.js';
 import { watchPointer } from '../core/pointer.js';
 
 const DPI_MAX = 1.5;          // scene option dpi
+const CONTRAST = 2.0;         // Coloration layer "contrast" (scene: 1.0) — darks darker, lights lighter
 
 const IDENTITY = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 
@@ -69,7 +70,9 @@ export function initSunFx(scope) {
     bloom: S.BLOOM.map((fs) => program(fs, S.BLOOM_VERT)),
     chromab: program(S.CHROMAB, S.CHROMAB_VERT),
     pblur: S.PBLUR.map((fs) => program(fs, S.PBLUR_VERT)),
-    color: program(S.COLORATION, S.COLOR_VERT),
+    /* Coloration with our contrast: the scene's contrast line (1.0000 = off) gets CONTRAST —
+       the same value as the layer's Contrast slider in Unicorn */
+    color: program(S.COLORATION.replace('1.0000 * (color.rgb - 0.5) + 0.5', CONTRAST.toFixed(4) + ' * (color.rgb - 0.5) + 0.5'), S.COLOR_VERT),
   };
 
   /* ——— fullscreen quad ——— */
