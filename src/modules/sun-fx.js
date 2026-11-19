@@ -15,7 +15,7 @@ import * as S from './sun-fx-shaders.js';
 import { watchPointer } from '../core/pointer.js';
 
 const DPI_MAX = 1.5;          // scene option dpi
-const CONTRAST = 2.0;         // Coloration layer "contrast" (scene: 1.0) — darks darker, lights lighter
+const CONTRAST = 1.25;        // Coloration layer "contrast" (scene: 1.0) — darks darker, lights lighter
 
 const IDENTITY = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 
