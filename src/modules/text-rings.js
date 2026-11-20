@@ -1,24 +1,28 @@
 /* ======================================================
-   TEXT RINGS — 5 rings of uppercase text that breathe (Figma "circles", node 5303-685)
-   Based on the CodePen he sent: every ring's letter spacing tightens and opens again
-   (5 s, ease-in-out, rings out of phase → a wave runs across them) and the whole circle turns (20 s).
+   TEXT RINGS — rings of uppercase text that breathe (Figma "circles", node 5303-685)
+   The CodePen he sent, 1:1 in behaviour:
+   — every ring's letter spacing goes wide → tight (40–60% of a 5 s cycle) → wide, ease-in-out;
+     rings are out of phase, so a wave runs across them;
+   — text that doesn't fit on its circle is not drawn (as a textPath does): wide spacing shows only
+     the start of the text, tightening pulls the rest in;
+   — the whole circle turns once per 20 s, ease-in-out.
    Design (1920 frame, from his SVG export): 5 concentric rings, center 960/960, baselines r 650 → 550
-   (step 25), Suisse Intl 24px uppercase white on #BBC0C8; each ring = the sentence ×3, starting at its
-   own angle; at rest every ring's text is 3363px long (the design spacing).
-   Spacing: SVG textLength (lengthAdjust="spacing") — the text is fitted to an exact length, so the
-   design spacing is matched whatever the font metrics; the animation tweens that length. Works the
-   same in every browser (animated letter-spacing on textPath is unreliable in Safari).
-   Webflow: Embed / Div [data-text-rings] [data-text="…"] (100% × 100% of a square block) — text editable there.
+   (step 25), Suisse Intl 24px uppercase white on #BBC0C8, each ring = the sentence ×3 from its own start
+   angle; at the tight point the text is 3363px long = exactly the Figma frame.
+   Drawn on a 2D canvas: positions are computed from cached glyph widths and the letters are painted
+   each frame — no SVG text re-layout (animating textLength / letter-spacing re-laid out ~1350 SVG
+   glyphs per frame and made the page lag).
+   Webflow: Embed / Div [data-text-rings] [data-text="…"] (100% × 100% of a square block).
    Paused off screen (ScrollTrigger onToggle); cleanup on page leave (Barba).
    ====================================================== */
 
-const NS = 'http://www.w3.org/2000/svg';
-const VIEW = 1920;
+const VIEW = 1920;                      // design frame
 const C = 960;                          // rings' center
 const BG = '#BBC0C8';
 const COLOR = '#FFFFFF';
 const FONT_SIZE = 24;
-const LENGTH = 3363;                    // design length of each ring's text (px in the 1920 frame)
+const FONT = '"Suisseintl Book", Arial, sans-serif';
+const LENGTH = 3363;                    // design (tight) length of each ring's text, px in the 1920 frame
 /* rings from the outside in: baseline radius, start angle of the text (deg, clockwise from 3 o'clock) */
 const RINGS = [
   { r: 650, start: -47.2 },
@@ -28,91 +32,117 @@ const RINGS = [
   { r: 550, start: 27.8 },
 ];
 const REPEAT = 3;                       // the sentence ×3 per ring (design)
-const SQUEEZE = 0.06;                   // how much a ring's text tightens (share of its length) — the design spacing is already tight
-const BREATH = 5;                       // s, one tighten-and-open cycle (pen)
-const PHASE = 0.1;                      // s, delay between neighbouring rings (pen)
-const TURN = 20;                        // s, one full turn of the circle (pen)
-
-let uid = 0;
-
-const el = (tag, attrs) => {
-  const node = document.createElementNS(NS, tag);
-  Object.keys(attrs).forEach((k) => node.setAttribute(k, attrs[k]));
-  return node;
-};
-
-/* full circle, clockwise (screen), starting at the given angle */
-function circlePath(r, startDeg) {
-  const a = (startDeg * Math.PI) / 180;
-  const x1 = C + r * Math.cos(a), y1 = C + r * Math.sin(a);
-  const x2 = C - r * Math.cos(a), y2 = C - r * Math.sin(a);
-  return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 1 1 ${x2.toFixed(2)} ${y2.toFixed(2)} A ${r} ${r} 0 1 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
-}
+const SPREAD = 1.325;                   // extra letter spacing at the wide point, em (pen: 2.65px on a 2px font)
+const BREATH = 5;                       // s, one cycle (pen)
+const PHASE = 0.4;                      // s, delay between neighbouring rings (pen: 0.1 s × 20 rings ≈ a 2 s wave)
+const TURN = 20;                        // s, one full turn (pen)
+const DPR_MAX = 2;
 
 export function initTextRings(scope) {
   const blocks = scope.querySelectorAll('[data-text-rings]');
   if (!blocks.length) return;
 
   const cleanups = [];
+  const easeInOut = gsap.parseEase('power1.inOut');   // CSS ease-in-out ≈ power1.inOut
+
+  /* pen keyframes: 0% wide → 40% tight → 60% tight → 100% wide; returns 0 (tight) … 1 (wide) */
+  const breath = (t) => {
+    const p = ((t % BREATH) + BREATH) % BREATH / BREATH;
+    if (p < 0.4) return 1 - easeInOut(p / 0.4);
+    if (p < 0.6) return 0;
+    return easeInOut((p - 0.6) / 0.4);
+  };
 
   blocks.forEach((block) => {
     const sentence = (block.getAttribute('data-text') || '').trim();
     if (!sentence) return;
-    const id = 'text-rings-' + (++uid);
+    const chars = Array.from(Array(REPEAT).fill(sentence).join(' ').toUpperCase());
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    const svg = el('svg', { class: 'text-rings__svg', viewBox: `0 0 ${VIEW} ${VIEW}`, 'aria-hidden': 'true' });
-    svg.style.cssText = 'display:block;width:100%;height:100%;';
-    const defs = el('defs', {});
-    const bg = el('rect', { width: VIEW, height: VIEW, fill: BG });
-    const group = el('g', {});
-    const text = el('text', {
-      fill: COLOR,
-      'font-size': FONT_SIZE,
-      'font-family': '"Suisseintl Book", Arial, sans-serif',
-    });
-    text.style.textTransform = 'uppercase';
+    const canvas = document.createElement('canvas');
+    canvas.setAttribute('aria-hidden', 'true');
+    Object.assign(canvas.style, { display: 'block', width: '100%', height: '100%' });
+    block.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
 
-    const content = Array(REPEAT).fill(sentence).join(' ');
-    const paths = RINGS.map((ring, i) => {
-      const pid = `${id}-ring-${i}`;
-      defs.appendChild(el('path', { id: pid, d: circlePath(ring.r, ring.start) }));
-      const tp = el('textPath', { href: `#${pid}`, textLength: LENGTH, lengthAdjust: 'spacing' });
-      tp.textContent = content;
-      text.appendChild(tp);
-      return tp;
-    });
-    group.appendChild(text);
-    svg.append(defs, bg, group);
-    block.appendChild(svg);
-
-    /* breathing (pen: spacing tightens at 40–60% of the cycle) + slow turn */
-    const tweens = [];
-    if (!reduce) {
-      const order = paths.slice().reverse();   // inner ring first, like the pen (small → large)
-      order.forEach((tp, i) => {
-        const tl = gsap.timeline({ repeat: -1, paused: true });
-        tl.to(tp, { attr: { textLength: LENGTH * (1 - SQUEEZE) }, duration: BREATH * 0.4, ease: 'sine.inOut' })
-          .to(tp, { attr: { textLength: LENGTH }, duration: BREATH * 0.4, ease: 'sine.inOut' }, `+=${BREATH * 0.2}`);
-        tl.progress(((BREATH - i * PHASE) % BREATH) / BREATH);   // pen: animation-delay -5s + i × 0.1s
-        tweens.push(tl);
-      });
-      tweens.push(gsap.to(group, { rotation: 360, svgOrigin: `${C} ${C}`, duration: TURN, ease: 'sine.inOut', repeat: -1, paused: true }));
+    /* glyph widths at the design size (cached; re-measured when the web font arrives) */
+    let widths = [], tight = 0;
+    function measure() {
+      ctx.font = `${FONT_SIZE}px ${FONT}`;
+      widths = chars.map((ch) => ctx.measureText(ch).width);
+      const natural = widths.reduce((a, b) => a + b, 0);
+      tight = (LENGTH - natural) / (chars.length - 1);   // design spacing (fits the text to 3363px)
     }
 
-    /* run only while on screen */
+    let scale = 1;
+    function resize() {
+      const dpr = Math.min(DPR_MAX, window.devicePixelRatio || 1);
+      const size = block.clientWidth;
+      canvas.width = Math.max(1, Math.round(size * dpr));
+      canvas.height = Math.max(1, Math.round(block.clientHeight * dpr));
+      scale = canvas.width / VIEW;
+    }
+
+    let time = 0;
+    function draw() {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.font = `${FONT_SIZE}px ${FONT}`;
+      ctx.fillStyle = COLOR;
+      ctx.textBaseline = 'alphabetic';
+
+      const turn = reduce ? 0 : easeInOut((time % TURN) / TURN) * Math.PI * 2;
+      RINGS.forEach((ring, i) => {
+        const inner = RINGS.length - 1 - i;              // pen order: small ring first
+        const wide = reduce ? 0 : breath(time - BREATH + inner * PHASE);
+        const spacing = tight + wide * SPREAD * FONT_SIZE;
+        const circ = 2 * Math.PI * ring.r;
+        const a0 = (ring.start * Math.PI) / 180 + turn;
+        let s = 0;
+        for (let k = 0; k < chars.length; k++) {
+          const w = widths[k];
+          if (s + w > circ) break;                        // past the end of the circle: not drawn (textPath)
+          if (chars[k] !== ' ') {
+            const a = a0 + (s + w / 2) / ring.r;          // glyph middle on the circle
+            const cos = Math.cos(a), sin = Math.sin(a);
+            ctx.setTransform(
+              -sin * scale, cos * scale, -cos * scale, -sin * scale,
+              (C + ring.r * cos) * scale, (C + ring.r * sin) * scale
+            );
+            ctx.fillText(chars[k], -w / 2, 0);
+          }
+          s += w + spacing;
+        }
+      });
+    }
+
+    const tick = (t, dt) => { time += dt / 1000; draw(); };
+    let running = false;
+    const start = () => { if (!running && !reduce) { running = true; gsap.ticker.add(tick); } };
+    const stop = () => { if (running) { running = false; gsap.ticker.remove(tick); } };
+
+    const ro = new ResizeObserver(() => { resize(); draw(); });
+    ro.observe(block);
+    resize();
+    measure();
+    draw();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); draw(); });
+
     const st = ScrollTrigger.create({
       trigger: block,
       start: 'top bottom',
       end: 'bottom top',
-      onToggle: (self) => tweens.forEach((t) => (self.isActive ? t.play() : t.pause())),
+      onToggle: (self) => (self.isActive ? start() : stop()),
     });
-    if (st.isActive) tweens.forEach((t) => t.play());
+    if (st.isActive) start();
 
     cleanups.push(() => {
+      stop();
       st.kill();
-      tweens.forEach((t) => t.kill());
-      svg.remove();
+      ro.disconnect();
+      canvas.remove();
     });
   });
 
