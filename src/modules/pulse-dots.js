@@ -23,8 +23,8 @@ const STEP = GRID / RANGE;      // cell step = dot + gap (the distance a dot flo
 const DOT = STEP - GAP;         // pen: grid / range − gap
 const OFFSET = (VIEW - GRID) / 2;
 const BLUR = DOT * 0.15;        // pen: 4px blur on a ~27px dot
-const BG = '#BBC0C8';
-const COLOR = '#FFFFFF';
+const BG = '#AFAFAF';
+const COLOR = '#000000';
 const MAX_DELAY = 5000;         // ms, as in the pen
 /* rotation → direction of the flow (0 right, 90 down, 180 left, 270 up) */
 const DIRS = [
