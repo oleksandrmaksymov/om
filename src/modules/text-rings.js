@@ -9,9 +9,10 @@
    Design (1920 frame, from his SVG export): 5 concentric rings, center 960/960, baselines r 650 → 550
    (step 25), Suisse Intl 24px uppercase white on #BBC0C8, each ring = the sentence ×3 from its own start
    angle; at the tight point the text is 3363px long = exactly the Figma frame.
-   Drawn on a 2D canvas: positions are computed from cached glyph widths and the letters are painted
-   each frame — no SVG text re-layout (animating textLength / letter-spacing re-laid out ~1350 SVG
-   glyphs per frame and made the page lag).
+   Drawn on a 2D canvas: positions come from cached glyph widths and every letter is a pre-rendered
+   sprite (one atlas of the distinct characters, drawn once per size) placed with drawImage — no text layout and
+   no glyph rasterisation per frame. (m118 animated SVG textLength → ~1350 glyphs re-laid out per
+   frame; m119 used fillText → every glyph re-rasterised at a new angle each frame: both made the page lag.)
    Webflow: Embed / Div [data-text-rings] [data-text="…"] (100% × 100% of a square block).
    Paused off screen (ScrollTrigger onToggle); cleanup on page leave (Barba).
    ====================================================== */
@@ -65,13 +66,36 @@ export function initTextRings(scope) {
     block.appendChild(canvas);
     const ctx = canvas.getContext('2d');
 
-    /* glyph widths at the design size (cached; re-measured when the web font arrives) */
-    let widths = [], tight = 0;
+    /* glyph widths at the design size + one sprite per distinct character at the canvas resolution
+       (rebuilt on resize and when the web font arrives) */
+    let widths = [], tight = 0, sprites = new Map();
+    const PAD = 2;   // design px around each glyph in its sprite
     function measure() {
       ctx.font = `${FONT_SIZE}px ${FONT}`;
       widths = chars.map((ch) => ctx.measureText(ch).width);
       const natural = widths.reduce((a, b) => a + b, 0);
       tight = (LENGTH - natural) / (chars.length - 1);   // design spacing (fits the text to 3363px)
+    }
+    let atlas = null;
+    function buildSprites() {
+      sprites = new Map();
+      ctx.font = `${FONT_SIZE}px ${FONT}`;
+      const asc = FONT_SIZE, desc = FONT_SIZE * 0.35;   // room for caps, commas and the period
+      const list = [...new Set(chars)].filter((ch) => ch !== ' ').map((ch) => ({ ch, w: ctx.measureText(ch).width }));
+      /* one atlas canvas, glyphs side by side → every drawImage reads the same texture */
+      const cellH = Math.ceil((asc + desc + PAD * 2) * scale);
+      let x = 0;
+      list.forEach((g) => { g.sx = x; g.sw = Math.ceil((g.w + PAD * 2) * scale); x += g.sw + 2; });
+      atlas = document.createElement('canvas');
+      atlas.width = Math.max(1, x); atlas.height = Math.max(1, cellH);
+      const g2 = atlas.getContext('2d');
+      g2.font = `${FONT_SIZE * scale}px ${FONT}`;
+      g2.fillStyle = COLOR;
+      g2.textBaseline = 'alphabetic';
+      list.forEach((g) => {
+        g2.fillText(g.ch, g.sx + PAD * scale, (PAD + asc) * scale);
+        sprites.set(g.ch, { sx: g.sx, sw: g.sw, x: -g.w / 2 - PAD, y: -asc - PAD, w: g.sw / scale, h: cellH / scale });
+      });
     }
 
     let scale = 1;
@@ -88,10 +112,6 @@ export function initTextRings(scope) {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.fillStyle = BG;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.setTransform(scale, 0, 0, scale, 0, 0);
-      ctx.font = `${FONT_SIZE}px ${FONT}`;
-      ctx.fillStyle = COLOR;
-      ctx.textBaseline = 'alphabetic';
 
       const turn = reduce ? 0 : easeInOut((time % TURN) / TURN) * Math.PI * 2;
       RINGS.forEach((ring, i) => {
@@ -104,14 +124,15 @@ export function initTextRings(scope) {
         for (let k = 0; k < chars.length; k++) {
           const w = widths[k];
           if (s + w > circ) break;                        // past the end of the circle: not drawn (textPath)
-          if (chars[k] !== ' ') {
+          const sp = sprites.get(chars[k]);
+          if (sp) {
             const a = a0 + (s + w / 2) / ring.r;          // glyph middle on the circle
             const cos = Math.cos(a), sin = Math.sin(a);
             ctx.setTransform(
               -sin * scale, cos * scale, -cos * scale, -sin * scale,
               (C + ring.r * cos) * scale, (C + ring.r * sin) * scale
             );
-            ctx.fillText(chars[k], -w / 2, 0);
+            ctx.drawImage(atlas, sp.sx, 0, sp.sw, atlas.height, sp.x, sp.y, sp.w, sp.h);
           }
           s += w + spacing;
         }
@@ -123,12 +144,13 @@ export function initTextRings(scope) {
     const start = () => { if (!running && !reduce) { running = true; gsap.ticker.add(tick); } };
     const stop = () => { if (running) { running = false; gsap.ticker.remove(tick); } };
 
-    const ro = new ResizeObserver(() => { resize(); draw(); });
+    const ro = new ResizeObserver(() => { resize(); buildSprites(); draw(); });
     ro.observe(block);
     resize();
     measure();
+    buildSprites();
     draw();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); draw(); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); buildSprites(); draw(); });
 
     const st = ScrollTrigger.create({
       trigger: block,
