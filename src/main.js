@@ -13,6 +13,7 @@ import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { initClock } from './modules/clock.js';
 import { initPageContent, initPageLayout } from './pages.js';
 import { initMaskTextScrollReveal } from './modules/split-text.js';
+import barbaPrefetch from '@barba/prefetch';
 /* Active page transition — swap the file to switch:
    './transitions/parallax.js', './transitions/curved-wipe.js' or './transitions/crossfade.js' */
 import { runPageOnceAnimation, runPageLeaveAnimation, runPageEnterAnimation } from './transitions/parallax.js';
@@ -82,6 +83,12 @@ const pageTransition = {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
+  /* Barba Prefetch (official plugin): when the browser is idle, the HTML of internal links that are
+     on screen is fetched into Barba's cache (again after every page change) → a click starts the
+     transition at once instead of waiting for the server. HTML only — images, videos and scripts of
+     the next page still load with the page as before. Respects the 'prevent' rule below. */
+  barba.use(barbaPrefetch);
+
   barba.init({
     preventRunning: true,
     timeout: 7000,
