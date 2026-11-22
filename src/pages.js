@@ -14,7 +14,6 @@ import { initHouse } from './modules/house.js';
 import { initPulseDots } from './modules/pulse-dots.js';
 import { initDotsFx } from './modules/dots-fx.js';
 import { initTextRings } from './modules/text-rings.js';
-import { initInteractiveDotsGridBackground } from './modules/dots-grid.js';
 import { initTypeField } from './modules/type-field.js';
 import { initCursorLabel } from './modules/cursor-label.js';
 import { initScrambleHover } from './modules/scramble-hover.js';
@@ -39,9 +38,6 @@ export function initPageContent(container, isFirstLoad) {
 
   /* Research: scramble hover on the interests list ([data-scramble-hover]) */
   addCleanup(initScrambleHover(container));
-
-  /* Research: Osmo Interactive Dots Grid over the desert image ([data-dots-canvas-init]) */
-  addCleanup(initInteractiveDotsGridBackground(container));
 
   /* Research: circular text — split letters (pin + reveal are created in initPageLayout) */
   addCleanup(initCircularText(container));
