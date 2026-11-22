@@ -69,7 +69,7 @@ export function initPageContent(container, isFirstLoad) {
   addCleanup(initCursorMarqueeEffect(container));
   addCleanup(initClock(container));
   initCopyEmailClipboard(container);
-  playVideos(container);
+  addCleanup(playVideos(container));
 
   /* Home loader timeline (first visit), so Barba once can add the page enter to it */
   return loaderTl;
