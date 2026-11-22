@@ -46,12 +46,18 @@ export function initDotsFx(scope) {
   if (!gl) { canvas.remove(); return; }
   const halfFloat = !!gl.getExtension('EXT_color_buffer_float');
 
-  /* ——— programs ——— */
+  /* ——— programs ———
+     MDN "WebGL best practices": compile and link every program first and don't ask for compile / link
+     status right away (each query makes the browser wait for that compile); check the link status only
+     after all are linked, and look at shader logs only if linking failed. With KHR_parallel_shader_compile
+     the browser compiles in the background and the block starts drawing once COMPLETION_STATUS_KHR says
+     all are done (a few frames later — the block is below the first screen); without it, the same
+     checks just run straight away, as before. */
+  const parallel = gl.getExtension('KHR_parallel_shader_compile');
   function compile(type, src) {
     const sh = gl.createShader(type);
     gl.shaderSource(sh, src);
     gl.compileShader(sh);
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) console.error('[dots-fx] shader', gl.getShaderInfoLog(sh));
     return sh;
   }
   const programs = [];
@@ -63,17 +69,22 @@ export function initDotsFx(scope) {
     gl.bindAttribLocation(p, 0, 'aVertexPosition');
     gl.bindAttribLocation(p, 1, 'aTextureCoord');
     gl.linkProgram(p);
-    gl.deleteShader(v); gl.deleteShader(f);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) console.error('[dots-fx]', gl.getProgramInfoLog(p));
-    const loc = {};
+    const prog = { p, v, f, loc: {} };
+    programs.push(prog);
+    return prog;
+  }
+  /* after linking: status (logs only on failure), uniform locations, shaders freed */
+  function finalize(prog) {
+    const { p, v, f } = prog;
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) {
+      console.error('[dots-fx]', gl.getProgramInfoLog(p), gl.getShaderInfoLog(v), gl.getShaderInfoLog(f));
+    }
     const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
     for (let i = 0; i < n; i++) {
       const info = gl.getActiveUniform(p, i);
-      loc[info.name] = gl.getUniformLocation(p, info.name);
+      prog.loc[info.name] = gl.getUniformLocation(p, info.name);
     }
-    const prog = { p, loc };
-    programs.push(prog);
-    return prog;
+    gl.deleteShader(v); gl.deleteShader(f);
   }
 
   const P = {
@@ -250,7 +261,7 @@ export function initDotsFx(scope) {
      previous mouse position is always one frame old; after a pause ours would be where the cursor was
      when drawing stopped, and the first frame drew a long streak across the empty field to it */
   function start() {
-    if (visible && !raf) {
+    if (ready && visible && !raf) {
       prevMouse.x = mouse.x; prevMouse.y = mouse.y;
       last = 0;
       raf = requestAnimationFrame(loop);
@@ -266,13 +277,28 @@ export function initDotsFx(scope) {
   let resizeTimer = null;
   const ro = new ResizeObserver(() => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => { build(); frame(); }, 60);
+    resizeTimer = setTimeout(() => { if (ready) { build(); frame(); } }, 60);
   });
   ro.observe(container);
-  build();
-  frame();
+
+  /* draw once every program is ready (see "programs") */
+  let ready = false, waitRaf = null;
+  function onReady() {
+    waitRaf = null;
+    programs.forEach(finalize);
+    ready = true;
+    build();
+    frame();
+  }
+  function waitPrograms() {
+    if (programs.every((pr) => gl.getProgramParameter(pr.p, parallel.COMPLETION_STATUS_KHR))) onReady();
+    else waitRaf = requestAnimationFrame(waitPrograms);
+  }
+  if (parallel) waitRaf = requestAnimationFrame(waitPrograms);
+  else onReady();
 
   return function cleanup() {
+    if (waitRaf) cancelAnimationFrame(waitRaf);
     if (raf) cancelAnimationFrame(raf);
     raf = null;
     clearTimeout(resizeTimer);
