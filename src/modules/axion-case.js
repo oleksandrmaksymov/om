@@ -1,3 +1,4 @@
+import { sampleSVGPoints, acquireGL, releaseGL } from './axion-gl.js';
 /* ======================================================
    AXION CASE PAGE — Axion 3D (Three.js), standalone variant
    Desktop: interactive (drag + cursor repulsion) right away.
@@ -10,14 +11,8 @@ export function runAxionCase(container) {
     var camera = new THREE.PerspectiveCamera(50, 16 / 9, 1, 5000);
     camera.position.set(0, 0, 700);
 
-    var renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
-    renderer.setSize(1920, 1080);
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 1);
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.4;
-    renderer.domElement.style.width = '100%';
-    renderer.domElement.style.height = '100%';
+    var kit = acquireGL('case', 1920, 1080);   // shared renderer + materials (axion-gl.js)
+    var renderer = kit.renderer;
     container.appendChild(renderer.domElement);
 
     scene.add(new THREE.AmbientLight(0x2a1f10, 1.0));
@@ -96,62 +91,31 @@ export function runAxionCase(container) {
         '  gl_FragColor = vec4(col, vAlpha*(core+glow*0.5)*mix(1.0,0.7,vSpeed*smoothstep(0.0,0.5,dist)));\n' +
         '}';
 
-      var mat = new THREE.ShaderMaterial({
+      var mat = kit.mat || (kit.mat = new THREE.ShaderMaterial({
         vertexShader: vert, fragmentShader: frag,
         transparent: true, depthWrite: false,
         blending: THREE.AdditiveBlending, vertexColors: true
-      });
+      }));
       particleSystem = new THREE.Points(geo, mat);
       scene.add(particleSystem);
     }
 
     function sampleSVGToPoints(svgText, count) {
-      return new Promise(function(resolve) {
-        try {
-          var size = 512, cvs = document.createElement('canvas');
-          cvs.width = cvs.height = size;
-          var ctx = cvs.getContext('2d');
-          var doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
-          var svgEl = doc.querySelector('svg');
-          if (!svgEl) { resolve([]); return; }
-          var vbW = parseFloat(svgEl.getAttribute('width') || 512);
-          var vbH = parseFloat(svgEl.getAttribute('height') || 512);
-          var vb = svgEl.getAttribute('viewBox');
-          if (vb) { var p = vb.split(/[\s,]+/); vbW = +p[2]; vbH = +p[3]; }
-          var sc = Math.min(size/vbW, size/vbH)*0.9;
-          var offX = (size-vbW*sc)/2, offY = (size-vbH*sc)/2;
-          ctx.save(); ctx.translate(offX, offY); ctx.scale(sc, sc);
-          ctx.fillStyle = 'white';
-          doc.querySelectorAll('path,rect,circle').forEach(function(el) {
-            if (el.tagName==='path') { var d=el.getAttribute('d'); if(d) ctx.fill(new Path2D(d)); }
-            else if (el.tagName==='rect') ctx.fillRect(+el.getAttribute('x')||0,+el.getAttribute('y')||0,+el.getAttribute('width')||0,+el.getAttribute('height')||0);
-            else if (el.tagName==='circle') { ctx.beginPath(); ctx.arc(+el.getAttribute('cx')||0,+el.getAttribute('cy')||0,+el.getAttribute('r')||0,0,Math.PI*2); ctx.fill(); }
-          });
-          ctx.restore();
-          var px = ctx.getImageData(0,0,size,size).data;
-          var filled = [];
-          for (var y=0;y<size;y++) for (var x=0;x<size;x++) { var i=(y*size+x)*4; if(px[i+3]>30) filled.push({x:x,y:y,a:px[i+3]/255}); }
-          if (!filled.length) { resolve([]); return; }
-          var pts = [];
-          for (var i=0;i<count;i++) {
-            var pt=filled[Math.floor(Math.random()*filled.length)];
-            pts.push({ x:(pt.x-size/2)*1.2+(Math.random()-0.5)*1.65, y:-(pt.y-size/2)*1.2+(Math.random()-0.5)*1.65, z:(Math.random()-0.5)*37*pt.a, a:pt.a });
-          }
-          resolve(pts);
-        } catch(e) { console.error(e); resolve([]); }
-      });
+
+      return sampleSVGPoints(svgText, count);   // cached per logo (axion-gl.js)
+
     }
 
     function applyPointsToParticles(pts) {
-      particleCount = pts.length;
+      particleCount = pts.length/4;   // pts: x, y, z, a per point (axion-gl.js)
       for (var i=0;i<particleCount;i++) {
-        var p=pts[i], i3=i*3;
-        positions[i3]=p.x; positions[i3+1]=p.y+40; positions[i3+2]=p.z;
+        var i3=i*3, i4=i*4, px=pts[i4], py=pts[i4+1], pz=pts[i4+2], pa=pts[i4+3];
+        positions[i3]=px; positions[i3+1]=py+40; positions[i3+2]=pz;
         velocities[i3]=velocities[i3+1]=velocities[i3+2]=0;
-        targetPositions[i3]=p.x; targetPositions[i3+1]=p.y; targetPositions[i3+2]=p.z;
+        targetPositions[i3]=px; targetPositions[i3+1]=py; targetPositions[i3+2]=pz;
         var col=duneColors[Math.floor(Math.random()*duneColors.length)], b=0.7+Math.random()*0.4;
         colors[i3]=col.r*b; colors[i3+1]=col.g*b; colors[i3+2]=col.b*b;
-        sizes[i]=1.8+Math.random()*3.8; alphas[i]=0.3+(p.a||0.7)*0.75;
+        sizes[i]=1.8+Math.random()*3.8; alphas[i]=0.3+(pa||0.7)*0.75;
       }
       particleSystem.geometry.setDrawRange(0, particleCount);
       ['position','color','size','alpha'].forEach(function(a){particleSystem.geometry.attributes[a].needsUpdate=true;});
@@ -296,7 +260,7 @@ export function runAxionCase(container) {
       g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(0.3,'rgba(255,255,255,0.6)');
       g.addColorStop(0.7,'rgba(255,255,255,0.15)'); g.addColorStop(1,'rgba(255,255,255,0)');
       dctx.fillStyle=g; dctx.fillRect(0,0,32,32);
-      var mat=new THREE.PointsMaterial({size:1.5,map:new THREE.CanvasTexture(dc),transparent:true,opacity:0.15,vertexColors:true,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true});
+      var mat=kit.dustMat||(kit.dustMat=new THREE.PointsMaterial({size:1.5,map:new THREE.CanvasTexture(dc),transparent:true,opacity:0.15,vertexColors:true,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true}));
       var dust=new THREE.Points(geo,mat);
       dust.userData={positions:pos,count:count};
       scene.add(dust);
@@ -407,16 +371,9 @@ export function runAxionCase(container) {
     window.removeEventListener('scroll', onScroll);
     clearTimeout(scrollTimer);
     visibilityObserver.disconnect();
-    scene.traverse(function(obj) {
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) {
-        if (obj.material.map) obj.material.map.dispose();
-        obj.material.dispose();
-      }
-    });
-    renderer.dispose();
-    renderer.forceContextLoss();
-    if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+    /* geometries are per page; renderer + materials go back to the shared kit (axion-gl.js) */
+    scene.traverse(function(obj) { if (obj.geometry) obj.geometry.dispose(); });
+    releaseGL('case', kit);
     particleSystem = null;
   };
 }

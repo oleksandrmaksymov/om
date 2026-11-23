@@ -1,3 +1,4 @@
+import { sampleSVGPoints, acquireGL, releaseGL } from './axion-gl.js';
 /* ======================================================
    AXION CARD — square spin-only variant for Logotypes grid
    Same particles/visuals as the main Axion, 1:1 aspect,
@@ -8,14 +9,8 @@ export function runAxionCard(container) {
   var camera = new THREE.PerspectiveCamera(50, 1, 1, 5000);
   camera.position.set(0, 0, 700);
 
-  var renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
-  renderer.setSize(1080, 1080);
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.setClearColor(0x000000, 1);
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.4;
-  renderer.domElement.style.width = '100%';
-  renderer.domElement.style.height = '100%';
+  var kit = acquireGL('card', 1080, 1080);   // shared renderer + materials (axion-gl.js)
+  var renderer = kit.renderer;
   container.appendChild(renderer.domElement);
 
   scene.add(new THREE.AmbientLight(0x2a1f10, 1.0));
@@ -84,56 +79,19 @@ export function runAxionCard(container) {
       '  gl_FragColor = vec4(col, vAlpha*(core+glow*0.5)*mix(1.0,0.7,vSpeed*smoothstep(0.0,0.5,dist)));\n' +
       '}';
 
-    var mat = new THREE.ShaderMaterial({
+    var mat = kit.mat || (kit.mat = new THREE.ShaderMaterial({
       vertexShader: vert, fragmentShader: frag,
       transparent: true, depthWrite: false,
       blending: THREE.AdditiveBlending, vertexColors: true
-    });
+    }));
     particleSystem = new THREE.Points(geo, mat);
     scene.add(particleSystem);
   }
 
   function sampleSVGToPoints(svgText, count) {
-    return new Promise(function(resolve) {
-      try {
-        var size = 512, cvs = document.createElement('canvas');
-        cvs.width = cvs.height = size;
-        var ctx = cvs.getContext('2d');
-        var doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
-        var svgEl = doc.querySelector('svg');
-        if (!svgEl) { resolve([]); return; }
-        var vbW = parseFloat(svgEl.getAttribute('width') || 512);
-        var vbH = parseFloat(svgEl.getAttribute('height') || 512);
-        var vb = svgEl.getAttribute('viewBox');
-        if (vb) { var p = vb.split(/[\s,]+/); vbW = +p[2]; vbH = +p[3]; }
-        var sc = Math.min(size/vbW, size/vbH)*0.9;
-        var offX = (size-vbW*sc)/2, offY = (size-vbH*sc)/2;
-        ctx.save(); ctx.translate(offX, offY); ctx.scale(sc, sc);
-        ctx.fillStyle = 'white';
-        doc.querySelectorAll('path,rect,circle').forEach(function(el) {
-          if (el.tagName==='path') { var d=el.getAttribute('d'); if(d) ctx.fill(new Path2D(d)); }
-          else if (el.tagName==='rect') ctx.fillRect(+el.getAttribute('x')||0,+el.getAttribute('y')||0,+el.getAttribute('width')||0,+el.getAttribute('height')||0);
-          else if (el.tagName==='circle') { ctx.beginPath(); ctx.arc(+el.getAttribute('cx')||0,+el.getAttribute('cy')||0,+el.getAttribute('r')||0,0,Math.PI*2); ctx.fill(); }
-        });
-        ctx.restore();
-        /* site: filled pixels and the sampled points live in typed arrays (MDN: Uint32Array / Float32Array)
-           instead of ~260k + 80k short-lived objects — same sampling, same random distribution, same points;
-           only no garbage for the browser to collect later (it caused a pause on every second page change) */
-        var px = ctx.getImageData(0,0,size,size).data;
-        var filled = new Uint32Array(size*size), nFilled = 0;   // pixel index y*size+x of every filled pixel
-        for (var j=0;j<size*size;j++) { if(px[j*4+3]>30) filled[nFilled++]=j; }
-        if (!nFilled) { resolve([]); return; }
-        var pts = new Float32Array(count*4);                     // x, y, z, a per point
-        for (var i=0;i<count;i++) {
-          var k=filled[Math.floor(Math.random()*nFilled)], ptx=k%size, pty=(k-ptx)/size, pta=px[k*4+3]/255, i4=i*4;
-          pts[i4]=(ptx-size/2)*1.2+(Math.random()-0.5)*1.65;
-          pts[i4+1]=-(pty-size/2)*1.2+(Math.random()-0.5)*1.65;
-          pts[i4+2]=(Math.random()-0.5)*37*pta;
-          pts[i4+3]=pta;
-        }
-        resolve(pts);
-      } catch(e) { console.error(e); resolve([]); }
-    });
+
+    return sampleSVGPoints(svgText, count);   // cached per logo (axion-gl.js)
+
   }
 
   function applyPointsToParticles(pts) {
@@ -203,7 +161,7 @@ export function runAxionCard(container) {
   g.addColorStop(0,'rgba(255,255,255,1)'); g.addColorStop(0.3,'rgba(255,255,255,0.6)');
   g.addColorStop(0.7,'rgba(255,255,255,0.15)'); g.addColorStop(1,'rgba(255,255,255,0)');
   dctx.fillStyle=g; dctx.fillRect(0,0,32,32);
-  var dustMat=new THREE.PointsMaterial({size:1.5,map:new THREE.CanvasTexture(dc),transparent:true,opacity:0.15,vertexColors:true,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true});
+  var dustMat=kit.dustMat||(kit.dustMat=new THREE.PointsMaterial({size:1.5,map:new THREE.CanvasTexture(dc),transparent:true,opacity:0.15,vertexColors:true,blending:THREE.AdditiveBlending,depthWrite:false,sizeAttenuation:true}));
   var ambientDust=new THREE.Points(dustGeo,dustMat);
   scene.add(ambientDust);
 
@@ -258,16 +216,9 @@ export function runAxionCard(container) {
   return function() {
     cancelAnimationFrame(rafId);
     visibilityObserver.disconnect();
-    scene.traverse(function(obj) {
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) {
-        if (obj.material.map) obj.material.map.dispose();
-        obj.material.dispose();
-      }
-    });
-    renderer.dispose();
-    renderer.forceContextLoss();
-    if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+    /* geometries are per page; renderer + materials go back to the shared kit (axion-gl.js) */
+    scene.traverse(function(obj) { if (obj.geometry) obj.geometry.dispose(); });
+    releaseGL('card', kit);
     particleSystem = null;
   };
 }
