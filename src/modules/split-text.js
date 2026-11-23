@@ -19,6 +19,11 @@ export function initMaskTextScrollReveal(scope) {
       type: typesToSplit,
       mask: 'lines',
       autoSplit: true,
+      /* SplitText option (GSAP docs): keep the white space as written. With the default (true) SplitText
+         collapses every white space — the non-breaking space (Option+Space) included — into a normal space,
+         so names like "Axion Studio" could break across lines. Checked: no [data-split] text on the site
+         has double spaces or line breaks that this would show. */
+      reduceWhiteSpace: false,
       onSplit: function(instance) {
         gsap.set(heading, { autoAlpha: 1 });
         var config = splitConfig[type];
