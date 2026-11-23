@@ -8,19 +8,25 @@ export const THREE_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/t
 export function initAxion(scope) {
   const container = scope.querySelector('#logo-canvas-container');
   if (!container) return;
-  let destroyed = false;
-  let cleanup = null;
-  loadScript(THREE_SRC).then(function() {
-    if (destroyed) return;
-    /* Home: canvas lives inside the Flip-scaled video → scroll-driven variant.
-       Axion case page: no Flip → standalone interactive variant. */
-    const isHome = !!container.closest('[data-flip-element="target"]');
-    cleanup = isHome ? runAxion(container) : runAxionCase(container);
-  });
-  return function() {
-    destroyed = true;
-    if (cleanup) cleanup();
-  };
+  /* Home: canvas lives inside the Flip-scaled video → scroll-driven variant, on the first screen
+     at every width → created right away, together with the page transition.
+     Axion case page: no Flip → standalone interactive variant; never on the first screen
+     (desktop ~6th screen, tablet ~3rd, hidden on phones) → created when it comes near (core/when-near.js),
+     so the hidden phone scene is never created. */
+  const isHome = !!container.closest('[data-flip-element="target"]');
+  function create() {
+    let destroyed = false;
+    let cleanup = null;
+    loadScript(THREE_SRC).then(function() {
+      if (destroyed) return;
+      cleanup = isHome ? runAxion(container) : runAxionCase(container);
+    });
+    return function() {
+      destroyed = true;
+      if (cleanup) cleanup();
+    };
+  }
+  return isHome ? create() : whenNear(container, create);
 }
 
 /* ———— Axion Card — square spin-only for logotypes grid ———— */
