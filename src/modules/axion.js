@@ -1,4 +1,4 @@
-import { sampleSVGPoints, acquireGL, releaseGL } from './axion-gl.js';
+import { sampleSVGPoints, acquireGL, releaseGL, gpuSim } from './axion-gl.js';
 import { loadScript } from '../core/load-script.js';
 import { whenNear } from '../core/when-near.js';
 import { runAxionCase } from './axion-case.js';
@@ -59,6 +59,7 @@ export function runAxion(container) {
 
   var kit = acquireGL('home', 1920, 1080);   // shared renderer + materials (axion-gl.js)
   var renderer = kit.renderer;
+  var sim = null;   // GPU particle simulation (axion-gl.js); null → the CPU loop below
   container.appendChild(renderer.domElement);
 
   scene.add(new THREE.AmbientLight(0x2a1f10, 1.0));
@@ -138,12 +139,17 @@ export function runAxion(container) {
       '  gl_FragColor = vec4(col, vAlpha*(core+glow*0.5)*mix(1.0,0.7,vSpeed*smoothstep(0.0,0.5,dist)));\n' +
       '}';
 
-    var mat = kit.mat || (kit.mat = new THREE.ShaderMaterial({
+    sim = gpuSim(kit, MAX_PARTICLES);
+
+    if (sim) geo.setAttribute('ref', sim.refAttribute());
+
+    var mat = sim ? sim.material : (kit.mat || (kit.mat = new THREE.ShaderMaterial({
       vertexShader: vert, fragmentShader: frag,
       transparent: true, depthWrite: false,
       blending: THREE.AdditiveBlending, vertexColors: true
-    }));
+    })));
     particleSystem = new THREE.Points(geo, mat);
+    if (sim) particleSystem.frustumCulled = false;   // positions live in the simulation texture
     scene.add(particleSystem);
   }
 
@@ -164,6 +170,7 @@ export function runAxion(container) {
       colors[i3]=col.r*b; colors[i3+1]=col.g*b; colors[i3+2]=col.b*b;
       sizes[i]=1.8+Math.random()*3.8; alphas[i]=0.3+(pa||0.7)*0.75;
     }
+    if (sim) sim.setPoints(pts, particleCount);
     particleSystem.geometry.setDrawRange(0, particleCount);
     ['position','color','size','alpha'].forEach(function(a){particleSystem.geometry.attributes[a].needsUpdate=true;});
     isSimulating=true; isForming=false; formationProgress=1;
@@ -178,6 +185,7 @@ export function runAxion(container) {
   function updateParticles(dt) {
     if (!isSimulating || !particleCount) return;
     time += dt;
+    if (sim) { sim.step(time, (isMouseOverCanvas && mode === 'interactive') ? { pos: mouseWorldPos, vel: mouseVelocity, radius: repulsionRadius } : null); return; }
 
     for (var i=0;i<particleCount;i++) {
       var i3=i*3;
