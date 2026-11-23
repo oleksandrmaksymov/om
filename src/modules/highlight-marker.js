@@ -23,6 +23,15 @@ const directionMap = {
   down:  { prop: 'scaleY', origin: 'center top' },
 };
 
+/* clip-path that shows the same part of a line as a bar scaled to `shown` (0…1) in that direction */
+function clipInset(direction, shown) {
+  var hidden = ((1 - shown) * 100) + '%';
+  if (direction === 'left') return 'inset(0% 0% 0% ' + hidden + ')';
+  if (direction === 'up')   return 'inset(' + hidden + ' 0% 0% 0%)';
+  if (direction === 'down') return 'inset(0% 0% ' + hidden + ' 0%)';
+  return 'inset(0% ' + hidden + ' 0% 0%)';   // right
+}
+
 function createBar(color, origin) {
   var bar = document.createElement('div');
   bar.className = 'highlight-marker-bar';
@@ -122,13 +131,23 @@ export function initHighlightMarkerTextReveal(scope) {
 
         instance.timeline = tl;
 
-        /* Cursor text: reveal with the cursor in the area, hide when it leaves */
+        /* Cursor text: reveal with the cursor in the area, hide when it leaves.
+           The text is clipped together with its bar (CSS clip-path inset, same tween): white text
+           would otherwise stay on the page after the bar shrinks and show over the type field rows */
         if (trailArea) {
           tl.kill();
           var bars = el.querySelectorAll('.highlight-marker-bar');
+          gsap.set(lines, { clipPath: clipInset(direction, 0) });
           var markerTo = function(value) {
             gsap.to(bars, {
               [dirConfig.prop]: value,
+              duration: MARKER_COVER.duration,
+              ease: MARKER_COVER.ease,
+              stagger: MARKER_STAGGER,
+              overwrite: true,
+            });
+            gsap.to(lines, {
+              clipPath: clipInset(direction, value),
               duration: MARKER_COVER.duration,
               ease: MARKER_COVER.ease,
               stagger: MARKER_STAGGER,
