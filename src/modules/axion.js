@@ -164,14 +164,20 @@ export function runAxion(container) {
           else if (el.tagName==='circle') { ctx.beginPath(); ctx.arc(+el.getAttribute('cx')||0,+el.getAttribute('cy')||0,+el.getAttribute('r')||0,0,Math.PI*2); ctx.fill(); }
         });
         ctx.restore();
+        /* site: filled pixels and the sampled points live in typed arrays (MDN: Uint32Array / Float32Array)
+           instead of ~260k + 80k short-lived objects — same sampling, same random distribution, same points;
+           only no garbage for the browser to collect later (it caused a pause on every second page change) */
         var px = ctx.getImageData(0,0,size,size).data;
-        var filled = [];
-        for (var y=0;y<size;y++) for (var x=0;x<size;x++) { var i=(y*size+x)*4; if(px[i+3]>30) filled.push({x:x,y:y,a:px[i+3]/255}); }
-        if (!filled.length) { resolve([]); return; }
-        var pts = [];
+        var filled = new Uint32Array(size*size), nFilled = 0;   // pixel index y*size+x of every filled pixel
+        for (var j=0;j<size*size;j++) { if(px[j*4+3]>30) filled[nFilled++]=j; }
+        if (!nFilled) { resolve([]); return; }
+        var pts = new Float32Array(count*4);                     // x, y, z, a per point
         for (var i=0;i<count;i++) {
-          var pt=filled[Math.floor(Math.random()*filled.length)];
-          pts.push({ x:(pt.x-size/2)*1.2+(Math.random()-0.5)*1.65, y:-(pt.y-size/2)*1.2+(Math.random()-0.5)*1.65, z:(Math.random()-0.5)*37*pt.a, a:pt.a });
+          var k=filled[Math.floor(Math.random()*nFilled)], ptx=k%size, pty=(k-ptx)/size, pta=px[k*4+3]/255, i4=i*4;
+          pts[i4]=(ptx-size/2)*1.2+(Math.random()-0.5)*1.65;
+          pts[i4+1]=-(pty-size/2)*1.2+(Math.random()-0.5)*1.65;
+          pts[i4+2]=(Math.random()-0.5)*37*pta;
+          pts[i4+3]=pta;
         }
         resolve(pts);
       } catch(e) { console.error(e); resolve([]); }
@@ -179,15 +185,15 @@ export function runAxion(container) {
   }
 
   function applyPointsToParticles(pts) {
-    particleCount = pts.length;
+    particleCount = pts.length/4;   // pts: x, y, z, a per point (see sampleSVGToPoints)
     for (var i=0;i<particleCount;i++) {
-      var p=pts[i], i3=i*3;
-      positions[i3]=p.x; positions[i3+1]=p.y+40; positions[i3+2]=p.z;
+      var i3=i*3, i4=i*4, px=pts[i4], py=pts[i4+1], pz=pts[i4+2], pa=pts[i4+3];
+      positions[i3]=px; positions[i3+1]=py+40; positions[i3+2]=pz;
       velocities[i3]=velocities[i3+1]=velocities[i3+2]=0;
-      targetPositions[i3]=p.x; targetPositions[i3+1]=p.y; targetPositions[i3+2]=p.z;
+      targetPositions[i3]=px; targetPositions[i3+1]=py; targetPositions[i3+2]=pz;
       var col=duneColors[Math.floor(Math.random()*duneColors.length)], b=0.7+Math.random()*0.4;
       colors[i3]=col.r*b; colors[i3+1]=col.g*b; colors[i3+2]=col.b*b;
-      sizes[i]=1.8+Math.random()*3.8; alphas[i]=0.3+(p.a||0.7)*0.75;
+      sizes[i]=1.8+Math.random()*3.8; alphas[i]=0.3+(pa||0.7)*0.75;
     }
     particleSystem.geometry.setDrawRange(0, particleCount);
     ['position','color','size','alpha'].forEach(function(a){particleSystem.geometry.attributes[a].needsUpdate=true;});
