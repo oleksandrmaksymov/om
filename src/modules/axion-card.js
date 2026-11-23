@@ -211,7 +211,7 @@ export function runAxionCard(container) {
   loadSVG(defaultSVG);
 
   var clock = new THREE.Clock();
-  var isCanvasVisible = true;
+  var isCanvasVisible = false;   // site: no simulation / render until the observer says the card is on screen
   var visibilityObserver = new IntersectionObserver(function(entries) {
     isCanvasVisible = entries[0].isIntersecting;
   }, { threshold: 0 });

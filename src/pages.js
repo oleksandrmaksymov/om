@@ -1,4 +1,5 @@
 import { addCleanup } from './core/lifecycle.js';
+import { whenNear } from './core/when-near.js';
 import { initAxion, initAxionCard } from './modules/axion.js';
 import { initLogoRevealLoader } from './modules/loader.js';
 import { initTextFitToWidth } from './modules/text-fit.js';
@@ -85,12 +86,14 @@ export function initPageLayout(container) {
   }
 
   /* Research: cursor experiment — type field (sticky, cursor rows) + cursor label (text follows the cursor).
-     Both measure the real layout, so they are created after the transition, like Flip */
-  addCleanup(initTypeField(container));
+     Both measure the real layout, so they are created after the transition, like Flip.
+     Type field (~2500 letters) is below the first screen → created when it comes near (core/when-near.js) */
+  addCleanup(whenNear(container.querySelector('[data-type-field]'), () => initTypeField(container)));
   addCleanup(initCursorLabel(container));
 
-  /* Research: pulse dots — built after the transition (300 cells + CSS animations), paused off screen */
-  addCleanup(initPulseDots(container));
+  /* Research: pulse dots — below the first screen, built when it comes near (~950 SVG nodes + CSS animations),
+     paused off screen */
+  addCleanup(whenNear(container.querySelector('[data-pulse-dots]'), () => initPulseDots(container)));
 
   /* Research: Dots FX — WebGL2 port of the Unicorn scene "Dots" (test block under the video), after the transition */
   addCleanup(initDotsFx(container));

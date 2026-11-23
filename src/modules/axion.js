@@ -1,4 +1,5 @@
 import { loadScript } from '../core/load-script.js';
+import { whenNear } from '../core/when-near.js';
 import { runAxionCase } from './axion-case.js';
 import { runAxionCard } from './axion-card.js';
 /* ———— Axion 3D (Three.js) ———— */
@@ -23,19 +24,23 @@ export function initAxion(scope) {
 }
 
 /* ———— Axion Card — square spin-only for logotypes grid ———— */
+/* Axion card is never on a first screen (bottom of Research / Logotypes; hidden on Axion):
+   Three.js and the scene are created only when the card comes within one screen (core/when-near.js) */
 export function initAxionCard(scope) {
   const container = scope.querySelector('#axion-card');
   if (!container) return;
-  let destroyed = false;
-  let cleanup = null;
-  loadScript(THREE_SRC).then(function() {
-    if (destroyed) return;
-    cleanup = runAxionCard(container);
+  return whenNear(container, function() {
+    let destroyed = false;
+    let cleanup = null;
+    loadScript(THREE_SRC).then(function() {
+      if (destroyed) return;
+      cleanup = runAxionCard(container);
+    });
+    return function() {
+      destroyed = true;
+      if (cleanup) cleanup();
+    };
   });
-  return function() {
-    destroyed = true;
-    if (cleanup) cleanup();
-  };
 }
 
 export function runAxion(container) {
