@@ -1,3 +1,4 @@
+import { lastPointer } from '../core/pointer.js';
 import { sampleSVGPoints, acquireGL, releaseGL, gpuSim } from './axion-gl.js';
 import { loadScript } from '../core/load-script.js';
 import { whenNear } from '../core/when-near.js';
@@ -370,6 +371,8 @@ export function runAxion(container) {
     isScrolling = true;
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(function() { isScrolling = false; }, 150);
+    var lp = lastPointer();   // site: cursor tracked since app start (core/pointer.js)
+    if (lp.known) { lastClientX = lp.x; lastClientY = lp.y; }
     var over = isPointerInContainer(lastClientX, lastClientY);
     if (over) {
       isMouseOverCanvas = true;

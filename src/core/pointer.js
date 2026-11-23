@@ -13,6 +13,12 @@ window.addEventListener('pointermove', (e) => {
   last.known = true;
 }, { passive: true });
 
+/* last known cursor position (tracked from app start) — for effects created later, e.g. when a block
+   comes near the viewport: they know where the cursor is without waiting for the next mouse move */
+export function lastPointer() {
+  return last;
+}
+
 export function watchPointer(fn) {
   const onMove = (e) => fn(e.clientX, e.clientY);
   const onScroll = () => { if (last.known) fn(last.x, last.y); };

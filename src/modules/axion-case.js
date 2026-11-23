@@ -1,3 +1,4 @@
+import { lastPointer } from '../core/pointer.js';
 import { sampleSVGPoints, acquireGL, releaseGL, gpuSim } from './axion-gl.js';
 /* ======================================================
    AXION CASE PAGE — Axion 3D (Three.js), standalone variant
@@ -304,6 +305,10 @@ export function runAxionCase(container) {
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(function() { isScrolling = false; }, 150);
       if (!isTouchDevice) {
+        /* site: the scene is created when it comes near (after the page loaded) — take the cursor position
+           tracked since app start, so a still cursor reacts while the page scrolls under it */
+        var lp = lastPointer();
+        if (lp.known) { lastClientX = lp.x; lastClientY = lp.y; }
         var over = isPointerInContainer(lastClientX, lastClientY);
         if (over) {
           isMouseOverCanvas = true;
