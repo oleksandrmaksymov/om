@@ -1,8 +1,8 @@
-/* ———— Grid Logo (Research, scroll-driven block) ———— */
+/* ———— Scroll-driven block (Research) ———— */
 /* Four squares on an 8 × 4 module grid break into 20 strips (a fifth of a module wide) and fall,
    stage by stage, from the top-left to the bottom-right while the block is pinned and scrubbed.
-   Webflow: [data-grid-logo="wrap"] (100svh, hidden on mobile like circular-text)
-            → [data-grid-logo="stage"] (2:1). The SVG inside the stage is built here.
+   Webflow: [data-scroll-driven="wrap"] (100svh, hidden on mobile like circular-text)
+            → [data-scroll-driven="stage"] (2:1). The SVG inside the stage is built here.
    - One SVG, viewBox = the Figma frames (1360 × 680; module 170, strip 34 × 170), so the stage data is the
      design's own coordinates. shape-rendering="crispEdges" (SVG attribute) keeps the strips of a square
      edge to edge, no hairline seams.
@@ -30,9 +30,9 @@ const NS = 'http://www.w3.org/2000/svg';
 const builds = new WeakMap();
 
 /* Content stage (with the page transition): build the SVG, squares hidden — no ScrollTrigger yet */
-export function initGridLogo(scope) {
-  const wrap = scope.querySelector('[data-grid-logo="wrap"]');
-  const stage = wrap && wrap.querySelector('[data-grid-logo="stage"]');
+export function initScrollDriven(scope) {
+  const wrap = scope.querySelector('[data-scroll-driven="wrap"]');
+  const stage = wrap && wrap.querySelector('[data-scroll-driven="stage"]');
   if (!stage || getComputedStyle(wrap).display === 'none') return function() {};   // hidden on mobile: never built
 
   const svg = document.createElementNS(NS, 'svg');
@@ -70,7 +70,7 @@ export function initGridLogo(scope) {
 
 /* Layout stage (after the transition, page in its real position): entrance trigger + pinned scroll timeline
    (GSAP docs: create pins when the layout is final) */
-export function initGridLogoScroll(scope) {
+export function initScrollDrivenScroll(scope) {
   const b = builds.get(scope);
   if (!b) return function() {};
   const at = (n, axis) => (i) => STAGES[n][i][axis] * (axis ? SH : SW);
