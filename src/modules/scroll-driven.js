@@ -2,7 +2,8 @@
 /* Four squares on an 8 × 4 module grid break into 20 strips (a fifth of a module wide) and fall,
    stage by stage, from the top-left to the bottom-right while the block is pinned and scrubbed.
    Webflow: [data-scroll-driven="wrap"] (100svh; padding 58px top = 20px under the 38px nav, 20px bottom;
-            hidden on mobile like circular-text) → [data-scroll-driven="stage"] (2:1, as wide as fits).
+            hidden on mobile like circular-text) → [data-scroll-driven="stage"] (full width; 2:1 unless the screen is
+            too low, then max-height wins and the modules get a little wider than tall).
    Method — the motion measured on tresmarescapital.com (GSAP + ScrollTrigger scrub + Lenis, SVG geometry rebuilt
    every frame): linear motion (ease "none"), constant speed, no stops, about 1 screen pixel of movement per pixel of
    scroll.
@@ -16,6 +17,8 @@
    - All 20 strips are ONE <path> (a rectangle subpath each). The browser anti-aliases one path as a whole,
      so strips side by side meet with no hairline seam — a square is just its five strips touching.
    - viewBox = the Figma frames (1360 × 680; module 170, strip 34 × 170): the stage data is the design's coordinates.
+     preserveAspectRatio="none" (SVG attribute) maps the grid onto the stage's real box, so on a low screen the
+     modules widen in proportion instead of the block getting side margins.
    - Entrance: like the Practice block (highlight-marker: 0.8s expo.out, 0.08s stagger, at 'top 90%', once) —
      the four squares rise into the first row, each as one block.
    - Whole squares move as blocks, one after another. Strips start each with its own delay (fixed random values
@@ -28,17 +31,20 @@ const SQUARE_STEP = 40;                 // whole squares start one after another
 
 /* Each strip's [column, row]: 40 strip columns (8 modules × 5), 4 rows. Strip i = strip floor(i / 4) of square i % 4.
    1 line · 2 checker · 3 strips · 4 spread · 5 strips right · 6 checker right · 7 line right.
-   From the Figma frames, with two rules: a strip only moves down, and the strips keep their left-to-right order.
-   Stage 3 = Figma, four strips one row lower or higher. Stage 4 = Figma's columns handed out in strip order.
-   Stage 5 = the strips in order in the 20 columns of the right half (each right square is made of the strips of the
-   same left square), rows as close to Figma as "only down" allows. Stages 6 and 7 keep each strip's column. */
-const STAGES = [[[0,0],[5,0],[10,0],[15,0],[1,0],[6,0],[11,0],[16,0],[2,0],[7,0],[12,0],[17,0],[3,0],[8,0],[13,0],[18,0],[4,0],[9,0],[14,0],[19,0]],[[0,0],[5,1],[10,0],[15,1],[1,0],[6,1],[11,0],[16,1],[2,0],[7,1],[12,0],[17,1],[3,0],[8,1],[13,0],[18,1],[4,0],[9,1],[14,0],[19,1]],[[0,0],[5,3],[10,0],[15,1],[1,1],[6,1],[11,2],[16,1],[2,2],[7,2],[12,2],[17,2],[3,0],[8,1],[13,0],[18,3],[4,2],[9,3],[14,2],[19,1]],[[0,0],[9,3],[18,0],[25,1],[0,1],[10,1],[19,2],[30,1],[2,2],[12,2],[20,2],[34,2],[4,0],[14,1],[22,0],[39,3],[9,2],[15,3],[24,2],[39,1]],[[20,2],[25,3],[30,0],[35,1],[21,1],[26,3],[31,2],[36,3],[22,2],[27,2],[32,2],[37,2],[23,2],[28,1],[33,2],[38,3],[24,2],[29,3],[34,2],[39,3]],[[20,2],[25,3],[30,2],[35,3],[21,2],[26,3],[31,2],[36,3],[22,2],[27,3],[32,2],[37,3],[23,2],[28,3],[33,2],[38,3],[24,2],[29,3],[34,2],[39,3]],[[20,3],[25,3],[30,3],[35,3],[21,3],[26,3],[31,3],[36,3],[22,3],[27,3],[32,3],[37,3],[23,3],[28,3],[33,3],[38,3],[24,3],[29,3],[34,3],[39,3]]];
+   From the Figma frames, with three rules: a strip only moves down; the strips keep their left-to-right order;
+   at every stage no two strips touch — side by side in a row or one above the other in a column.
+   Stage 3 = Figma, six strips one row off. Stage 4 = one column per strip, as close to Figma's spread as the rules
+   allow. Stage 5 = the strips in order in the 20 columns of the right half (each right square is made of the strips
+   of the same left square), neighbours in different rows, as close to Figma as "only down" allows.
+   Stages 6 and 7 keep each strip's column. */
+const STAGES = [[[0,0],[5,0],[10,0],[15,0],[1,0],[6,0],[11,0],[16,0],[2,0],[7,0],[12,0],[17,0],[3,0],[8,0],[13,0],[18,0],[4,0],[9,0],[14,0],[19,0]],[[0,0],[5,1],[10,0],[15,1],[1,0],[6,1],[11,0],[16,1],[2,0],[7,1],[12,0],[17,1],[3,0],[8,1],[13,0],[18,1],[4,0],[9,1],[14,0],[19,1]],[[0,0],[5,3],[10,0],[15,1],[1,1],[6,1],[11,1],[16,3],[2,2],[7,2],[12,2],[17,2],[3,0],[8,1],[13,0],[18,3],[4,2],[9,3],[14,2],[19,1]],[[0,0],[9,3],[18,0],[25,1],[1,1],[10,1],[19,1],[30,3],[2,2],[12,2],[20,2],[34,2],[4,0],[14,1],[22,0],[38,3],[8,2],[15,3],[24,2],[39,1]],[[20,2],[25,3],[30,0],[35,1],[21,1],[26,1],[31,1],[36,3],[22,2],[27,2],[32,2],[37,2],[23,1],[28,1],[33,1],[38,3],[24,2],[29,3],[34,2],[39,2]],[[20,2],[25,3],[30,2],[35,3],[21,2],[26,3],[31,2],[36,3],[22,2],[27,3],[32,2],[37,3],[23,2],[28,3],[33,2],[38,3],[24,2],[29,3],[34,2],[39,3]],[[20,3],[25,3],[30,3],[35,3],[21,3],[26,3],[31,3],[36,3],[22,3],[27,3],[32,3],[37,3],[23,3],[28,3],[33,3],[38,3],[24,3],[29,3],[34,3],[39,3]]];
 
 /* The moves, in order: [from stage, to stage, axis (0 x, 1 y), whole squares?]. 4 → 5 goes across first, then down. */
 const MOVES = [[0, 1, 1, true], [1, 2, 1, false], [2, 3, 0, false], [3, 4, 0, false], [4, 4, 1, false], [4, 5, 1, false], [5, 6, 1, true]];
 /* Each strip's start delay in every move (design units = time), random, picked once and checked over the whole
-   timeline (every 4 units): no two strips ever overlap and the left-to-right order never changes. */
-const DELAYS = [[22,52,88,59,43,28,12,90,68,23,53,64,82,25,28,17,53,83,66,13],[33,7,14,44,14,24,22,38,77,21,55,36,26,27,70,76,66,80,66,27],[21,51,55,71,82,72,88,61,61,72,45,72,79,46,31,34,55,51,45,35],[66,62,84,87,1,36,67,48,56,23,35,77,60,79,83,83,78,82,81,84],[37,37,40,69,88,60,39,7,12,6,13,0,36,27,85,14,8,81,83,46],[49,30,36,25,9,88,78,78,13,57,5,64,6,55,14,88,82,38,83,70],[16,77,79,23,60,27,2,41,12,73,63,22,36,6,32,54,75,87,56,40]];
+   timeline (every 4 units): no two strips ever overlap and the left-to-right order never changes (moving
+   neighbours may brush past each other; at rest they never touch). */
+const DELAYS = [[47,80,28,50,58,48,2,72,56,81,47,49,53,28,65,79,4,1,40,22],[42,25,14,5,54,90,9,44,76,25,33,0,9,29,65,14,62,65,72,90],[77,4,59,25,65,20,58,50,43,39,48,44,27,15,29,70,69,49,3,55],[86,15,54,54,59,17,27,38,65,23,22,68,85,4,23,33,41,38,53,73],[53,15,20,59,37,85,20,31,18,3,81,53,9,24,82,60,28,29,1,73],[26,87,48,89,13,20,61,27,56,53,58,46,74,41,61,27,9,38,50,82],[73,69,24,32,82,30,44,84,33,76,57,86,15,46,70,68,9,51,73,2]];
 
 const NS = 'http://www.w3.org/2000/svg';
 const builds = new WeakMap();
@@ -51,6 +57,7 @@ export function initScrollDriven(scope) {
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 1360 680');
   svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('preserveAspectRatio', 'none');
   svg.style.cssText = 'display:block;width:100%;height:100%';
   const path = document.createElementNS(NS, 'path');
   path.setAttribute('fill', 'currentColor');
