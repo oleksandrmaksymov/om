@@ -21,9 +21,9 @@
      modules widen in proportion instead of the block getting side margins.
    - Entrance: like the Practice block (highlight-marker: 0.8s expo.out, 0.08s stagger, at 'top 90%', once) —
      the four squares rise into the first row, each as one block.
-   - Whole squares move as blocks, one after another. Strips start each with its own delay (fixed random values
-     below), so neighbours slide past each other; they never overlap, never change their left-to-right order and
-     never move up. */
+   - Whole squares move as blocks, one after another. In the falls strips start each with its own delay (fixed
+     random values below), so neighbours slide past each other; across, they all set off together. They never
+     overlap, never change their left-to-right order and never move up. */
 
 const SW = 34, SH = 170;                // strip size, design units
 const ENTER = { duration: 0.8, ease: 'expo.out', stagger: 0.08, start: 'top 90%' };   // = Practice (highlight-marker)
@@ -41,10 +41,12 @@ const STAGES = [[[0,0],[5,0],[10,0],[15,0],[1,0],[6,0],[11,0],[16,0],[2,0],[7,0]
 
 /* The moves, in order: [from stage, to stage, axis (0 x, 1 y), whole squares?]. 4 → 5 goes across first, then down. */
 const MOVES = [[0, 1, 1, true], [1, 2, 1, false], [2, 3, 0, false], [3, 4, 0, false], [4, 4, 1, false], [4, 5, 1, false], [5, 6, 1, true]];
-/* Each strip's start delay in every move (design units = time), random, picked once and checked over the whole
+/* Each strip's start delay in every move (design units = time). Falls: random, so neighbours slide past each other.
+   Moves across (3 → 4, 4 → 5): 0 — all strips set off together at the same speed and each stops at its place, so the
+   row glides as one and the gaps can't close. Picked once and checked over the whole
    timeline (every 4 units): no two strips ever overlap and the left-to-right order never changes (moving
    neighbours may brush past each other; at rest they never touch). */
-const DELAYS = [[47,80,28,50,58,48,2,72,56,81,47,49,53,28,65,79,4,1,40,22],[42,25,14,5,54,90,9,44,76,25,33,0,9,29,65,14,62,65,72,90],[77,4,59,25,65,20,58,50,43,39,48,44,27,15,29,70,69,49,3,55],[86,15,54,54,59,17,27,38,65,23,22,68,85,4,23,33,41,38,53,73],[53,15,20,59,37,85,20,31,18,3,81,53,9,24,82,60,28,29,1,73],[26,87,48,89,13,20,61,27,56,53,58,46,74,41,61,27,9,38,50,82],[73,69,24,32,82,30,44,84,33,76,57,86,15,46,70,68,9,51,73,2]];
+const DELAYS = [[47,80,28,50,58,48,2,72,56,81,47,49,53,28,65,79,4,1,40,22],[42,25,14,5,54,90,9,44,76,25,33,0,9,29,65,14,62,65,72,90],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[53,15,20,59,37,85,20,31,18,3,81,53,9,24,82,60,28,29,1,73],[26,87,48,89,13,20,61,27,56,53,58,46,74,41,61,27,9,38,50,82],[73,69,24,32,82,30,44,84,33,76,57,86,15,46,70,68,9,51,73,2]];
 
 const NS = 'http://www.w3.org/2000/svg';
 const builds = new WeakMap();
