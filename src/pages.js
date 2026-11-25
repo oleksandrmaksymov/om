@@ -10,6 +10,7 @@ import { initCopyEmailClipboard } from './modules/copy-email.js';
 import { playVideos } from './modules/videos.js';
 import { initFlipOnScroll } from './modules/flip.js';
 import { initCircularText, initCircularTextScroll } from './modules/circular-text.js';
+import { initGridLogo, initGridLogoScroll } from './modules/grid-logo.js';
 import { initShowreel } from './modules/showreel.js';
 import { initHouse } from './modules/house.js';
 import { initPulseDots } from './modules/pulse-dots.js';
@@ -39,6 +40,9 @@ export function initPageContent(container, isFirstLoad) {
 
   /* Research: scramble hover on the interests list ([data-scramble-hover]) */
   addCleanup(initScrambleHover(container));
+
+  /* Research: grid logo (scroll-driven) — SVG strips built, squares hidden (pin + entrance in initPageLayout) */
+  addCleanup(initGridLogo(container));
 
   /* Research: circular text — split letters (pin + reveal are created in initPageLayout) */
   addCleanup(initCircularText(container));
@@ -77,6 +81,9 @@ export function initPageContent(container, isFirstLoad) {
 }
 
 export function initPageLayout(container) {
+  /* Research: grid logo pin — above circular text, same pattern (after the transition, scroll at top) */
+  addCleanup(initGridLogoScroll(container));
+
   /* Research: circular text pin needs real page layout (after the transition, scroll at top) */
   addCleanup(initCircularTextScroll(container));
 
