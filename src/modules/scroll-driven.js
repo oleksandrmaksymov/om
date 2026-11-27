@@ -24,7 +24,7 @@ const M = 170;                          // module, design units
 
 /* Every block is one module square that keeps its size; it slides only along the grid — down a column or right
    along a row — except the "O", which leaves upwards with the scroll.
-   Stages: 0 nothing (the blocks wait above the stage) · 1 line · 2 square left · 3 "OM" · then the "O" scrolls away up while the "M" (the right part) closes up
+   Stages: 0 nothing (the blocks wait above the stage; they slide in as the stage reaches the top) · 1 line · 2 square left · 3 "OM" · then the "O" scrolls away up while the "M" (the right part) closes up
    (4: its first column moves one place right, under its top block) and fills (5: the square on the right).
    Each block: [row, columns] — at stage 1 every block sits in row 0 of its stage-2 column (stacked under the line)
    and slides down to its row; then it takes the next column of its list at each stage.
@@ -38,21 +38,21 @@ const BLOCKS = [
   [3, [0, 1]], [3, [1, 3, 4, 4]], [3, [2, 5, 5, 5]], [3, [3, 7, 7, 7]], [3, [2, 5, 5, 6]],
 ];
 const EASE = 'sine.inOut';
-const DOWN = { duration: 680, stagger: 40 };    // 1 → 2: the blocks slide down from above the stage (row -1), column by column
+const ENTER = { start: 'top 20%', stagger: 40 };   // 0 → 1: the line slides in from above the stage while the photo
+                                                   // above is still on screen (stage top at 20% of the screen → top)
+const DOWN = { duration: 510, stagger: 40 };    // 1 → 2: the blocks slide down out of the line, column by column (pinned)
 /* the moves along the rows: from the start of the move, each row's own [delay, duration] — a little different
    for every row, in no order, so the rows arrive one by one at random; a row moves as a whole, so its blocks
    never pass each other */
 const MOVES = [
-  { at: 680, rows: [[60, 560], [0, 620], [110, 520], [30, 600]] },    // 2 → 3: the square slides right into "OM"
-];
-/* the M closing up (3 → 4: its first column one place right; 4 → 5: the gaps fill), from the moment the "O" is
-   off the screen: every block on its own — its own delay and duration, from a seeded random (the same every
-   time). Blocks that move here never share a row segment, so they can't pass each other. */
-const CLOSE = { delay: [0, 240], duration: [360, 560] };
+  { at: 510, rows: [[60, 560], [0, 620], [110, 520], [30, 600]] },    // 2 → 3: the square slides right into "OM"
+  { at: 0, rows: [[20, 500], [80, 440], [0, 520], [50, 470]] },       // 3 → 4: the M's first column, one place right
+  { at: 0, rows: [[20, 500], [80, 440], [0, 520], [50, 470]] },       // 4 → 5: at the same time, the gaps fill
+];   // 3 → 4 and 4 → 5 run together, row by row, from the moment the "O" is off the screen
 const WIPE = { duration: 935, ease: 'sine.in' };   // experiment: a white circle grows from the square's centre and covers the stage
 const OM = { at: 0.6, duration: 170, stagger: 40, ease: 'expo.out' };   // O and M rise at 60% of the circle's growth (the site's text reveal), tied to the scroll
 const RINGS_AFTER = 100;   // the rings start right after the O and M are up (as when the circular text came on its own)
-const OUT = 1360;   // the "O" starts leaving here (as "OM" is complete), at the scroll's own speed
+const OUT = 1190;   // the "O" starts leaving here (as "OM" is complete), at the scroll's own speed
 
 import { circularTextReveal, REVEAL_SCROLL } from './circular-text.js';
 
@@ -128,28 +128,29 @@ export function initScrollDrivenScroll(scope) {
   /* the timeline: time = design units, one fromTo per block per move (explicit values, immediateRender off, so
      scrubbing back and forth is exact), then driven by its pinned ScrollTrigger */
   const tl = gsap.timeline({ paused: true, onUpdate: b.render });
-  /* 1 → 2: down its column, from above the stage to its row; columns one after another, left to right */
-  BLOCKS.forEach(function([row, cols], i) {
-    tl.fromTo(b.blocks[i], { y: -M }, { y: row * M, duration: DOWN.duration - 3 * DOWN.stagger, ease: EASE, immediateRender: false }, cols[0] * DOWN.stagger);
+  /* 0 → 1, before the pin: every block slides down from above the stage to row 0 (the line), columns one after
+     another, scrubbed from the moment the stage top is at 20% of the screen until it reaches the top */
+  const enter = gsap.timeline({
+    scrollTrigger: { trigger: b.wrap, start: ENTER.start, end: 'top top', scrub: true },
+    onUpdate: b.render,
   });
-  /* 2 → 3 (MOVES): right along its row; a whole row moves together, each row with its own timing */
+  BLOCKS.forEach(function([, cols], i) {
+    enter.fromTo(b.blocks[i], { y: -M }, { y: 0, duration: 1, ease: EASE, immediateRender: false }, cols[0] * ENTER.stagger / 170);
+  });
+
+  /* 1 → 2: down its column, from row 0 to its row; columns one after another, left to right */
+  BLOCKS.forEach(function([row, cols], i) {
+    if (!row) return;
+    tl.fromTo(b.blocks[i], { y: 0 }, { y: row * M, duration: DOWN.duration - 3 * DOWN.stagger, ease: EASE, immediateRender: false }, cols[0] * DOWN.stagger);
+  });
+  /* the moves along the rows (MOVES): right along its row; a whole row moves together, each row with its own timing.
+     2 → 3 goes on the main timeline; the M's moves (3 → 4 → 5) on their own timeline, placed where the "O" is gone */
+  const closeUp = gsap.timeline();
   MOVES.forEach(function(move, n) {
     BLOCKS.forEach(function([row, cols], i) {
       if (cols.length < n + 2 || cols[n] === cols[n + 1]) return;
       const [delay, duration] = move.rows[row];
-      tl.fromTo(b.blocks[i], { x: cols[n] * M }, { x: cols[n + 1] * M, duration: duration, ease: EASE, immediateRender: false }, move.at + delay);
-    });
-  });
-  /* the M closing up (3 → 4 → 5), on its own timeline placed where the "O" is gone: every block with its own timing */
-  const closeUp = gsap.timeline();
-  const seq = [   // a fixed shuffled sequence (the same timing on every visit)
-    0.62, 0.15, 0.88, 0.41, 0.07, 0.73, 0.33, 0.95, 0.24, 0.57, 0.81, 0.11, 0.49, 0.68, 0.02, 0.36];
-  let k = 0;
-  const pick = ([a, z]) => a + (z - a) * seq[k++ % seq.length];
-  BLOCKS.forEach(function([, cols], i) {
-    [1, 2].forEach(function(n) {
-      if (cols.length < n + 2 || cols[n] === cols[n + 1]) return;
-      closeUp.fromTo(b.blocks[i], { x: cols[n] * M }, { x: cols[n + 1] * M, duration: pick(CLOSE.duration), ease: EASE, immediateRender: false }, pick(CLOSE.delay));
+      (n ? closeUp : tl).fromTo(b.blocks[i], { x: cols[n] * M }, { x: cols[n + 1] * M, duration: duration, ease: EASE, immediateRender: false }, move.at + delay);
     });
   });
 
@@ -196,5 +197,7 @@ export function initScrollDrivenScroll(scope) {
     ScrollTrigger.removeEventListener('refreshInit', makeOut);
     st.kill(true);
     tl.kill();
+    if (enter.scrollTrigger) enter.scrollTrigger.kill();
+    enter.kill();
   };
 }
