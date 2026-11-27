@@ -38,7 +38,9 @@ const BLOCKS = [
   [3, [0, 1]], [3, [1, 3, 4, 4]], [3, [2, 5, 5, 5]], [3, [3, 7, 7, 7]], [3, [2, 5, 5, 6]],
 ];
 const EASE = 'sine.inOut';
-const ENTER = { start: 'top 25%' };             // the timeline starts while the photo above is still on screen
+/* where the timeline starts (stage top on the screen): desktop — while the photo above still shows its last 25%;
+   tablet and phone — as soon as the stage comes in at the bottom, so the blocks come out of the photo all the way up */
+const ENTER = { desktop: 0.25, mobile: 1 };   // the stage top's place on the screen (share of its height, from the top)
 const DOWN = { duration: 510, stagger: 40 };    // 0 → 2: the columns slide in from above and unfold (after the scroll before the pin)
 /* the moves along the rows: from the start of the move, each row's own [delay, duration] — a little different
    for every row, in no order, so the rows arrive one by one at random; a row moves as a whole, so its blocks
@@ -155,6 +157,7 @@ export function initScrollDrivenScroll(scope) {
   mm.add(SCREENS, function(context) {
     const desktop = context.conditions.desktop;
     b.view.full = !desktop;
+    const enter = desktop ? ENTER.desktop : ENTER.mobile;
     /* the timeline: time = design units, one fromTo per block per move (explicit values, immediateRender off, so
        scrubbing back and forth is exact) */
     const tl = gsap.timeline({ paused: true, onUpdate: b.render });
@@ -166,7 +169,7 @@ export function initScrollDrivenScroll(scope) {
       /* the pace: by the width on desktop; by the height on tablet and phone (a tall, narrow screen would
          otherwise run through the animation much faster) */
       s = desktop ? sx : sy;
-      pre = parseFloat(ENTER.start.split(' ')[1]) / 100 * window.innerHeight / s;   // 'top 25%' → 25% of the screen
+      pre = enter * window.innerHeight / s;   // the scroll from ENTER to the pin, in units
       /* the circle grows from the circular text's centre (on desktop that is the right rectangle's centre) */
       const ring = b.wrap.querySelector('[data-circular-text="svg"]');
       if (ring) {
@@ -238,7 +241,7 @@ export function initScrollDrivenScroll(scope) {
     ScrollTrigger.create({
       animation: tl,
       trigger: b.wrap,
-      start: ENTER.start,
+      start: 'top ' + enter * 100 + '%',   // 'top 25%' / 'top 100%'
       end: () => '+=' + tl.duration() * s,   // 1 screen px of movement per px of scroll (per unit × s)
       scrub: true,
     });
