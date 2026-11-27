@@ -1,8 +1,8 @@
 /* ———— Scroll-driven block (Research) ———— */
 /* An 8 × 4 module grid (module 170 design units). The black line (top-left, half the width — always on screen,
    it continues the image above) slides down into a square, the square's rows slide right into the "OH" figure,
-   then the "O" scrolls away up and, once it is off the screen, the "M" closes up into a square on the right —
-   pinned and scrubbed.
+   then the "O" scrolls away up and, once it is off the screen, the "M" closes up into a square on the right;
+   then (experiment) a white circle grows from that square's centre until the stage is white — pinned and scrubbed.
    Webflow: [data-scroll-driven="wrap"] (no paddings, 100svh; hidden on mobile) → [data-scroll-driven="stage"]
             (the whole screen: full width × 100svh — a row is 25% of the height, a column 12.5% of the width).
    Method (GSAP + ScrollTrigger scrub + Lenis, SVG geometry rebuilt every frame):
@@ -43,6 +43,7 @@ const MOVES = [
   { at: 0, rows: [[0, 300], [20, 300], [40, 300], [10, 300]] },       // 3 → 4: the M's first column, one place right
   { at: 340, rows: [[20, 500], [80, 440], [0, 520], [50, 470]] },     // 4 → 5: the M fills into the square
 ];   // 3 → 4 and 4 → 5 are timed from the moment the "O" is off the screen
+const WIPE = { duration: 680, ease: 'power2.in' };   // experiment: a white circle grows from the square's centre and covers the stage
 const OUT = 1190;   // the "O" starts leaving here (as "OH" is complete), at the scroll's own speed
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -63,11 +64,16 @@ export function initScrollDriven(scope) {
   path.setAttribute('fill', 'currentColor');
   svg.appendChild(path);
   stage.appendChild(svg);
+  /* the white circle (experiment): a white layer over the stage, shown through a CSS clip-path circle centred on
+     the right square (75% across, 50% down) — its radius is set from GSAP every frame */
+  const wipe = document.createElement('div');
+  wipe.style.cssText = 'position:absolute;inset:0;background:#fff;pointer-events:none;clip-path:circle(0px at 75% 50%)';
+  stage.appendChild(wipe);
 
   /* every block's position (top-left corner), design units; stage 1: the line, always on screen;
      lift = how far the "O" has gone up */
   const blocks = BLOCKS.map(([, cols]) => ({ x: cols[0] * M, y: 0, o: cols.length === 2 }));
-  const lift = { v: 0 };
+  const lift = { v: 0 }, white = { v: 0 };   // white: the circle, 0 = a point, 1 = past the stage's farthest corner
 
   /* one path, a module square per block */
   function render() {
@@ -77,14 +83,17 @@ export function initScrollDriven(scope) {
       d += 'M' + x0 + ' ' + y0 + 'h' + M + 'v' + M + 'h-' + M + 'Z';
     }
     path.setAttribute('d', d);
+    const r = white.v * Math.hypot(stage.clientWidth * 0.75, stage.clientHeight * 0.5) * 1.01;
+    wipe.style.clipPath = 'circle(' + r.toFixed(1) + 'px at 75% 50%)';
   }
   render();
-  builds.set(scope, { wrap: wrap, stage: stage, blocks: blocks, lift: lift, render: render });
+  builds.set(scope, { wrap: wrap, stage: stage, blocks: blocks, lift: lift, white: white, render: render });
 
   return function() {
     builds.delete(scope);
-    gsap.killTweensOf(blocks.concat(lift));
+    gsap.killTweensOf(blocks.concat(lift, white));
     svg.remove();
+    wipe.remove();
   };
 }
 
@@ -116,7 +125,7 @@ export function initScrollDrivenScroll(scope) {
   /* the "O" leaves up at the scroll's own speed (ease none, 1 unit of time = 1 unit of distance) until it is past
      the top of the screen; then the M closes up. The distance depends on the space above the pinned stage, so both
      are placed again whenever ScrollTrigger re-measures (refreshInit, GSAP docs), before the pin's end is worked out */
-  let out;
+  let out, circle;
   function makeOut() {
     const box = b.stage.getBoundingClientRect(), sx = box.width / 1360, sy = box.height / 680;   // screen px per unit
     const distance = 4 * M + Math.max(0, window.innerHeight - box.height) / sy + 20;   // grid height + space above
@@ -125,6 +134,8 @@ export function initScrollDrivenScroll(scope) {
     tl.remove(closeUp);
     out = tl.fromTo(b.lift, { v: 0 }, { v: distance, duration: duration, ease: 'none', immediateRender: false }, OUT);
     tl.add(closeUp, OUT + duration);
+    if (circle) tl.remove(circle);
+    circle = tl.fromTo(b.white, { v: 0 }, { v: 1, duration: WIPE.duration, ease: WIPE.ease, immediateRender: false }, OUT + duration + closeUp.duration());
   }
   makeOut();
   ScrollTrigger.addEventListener('refreshInit', makeOut);
