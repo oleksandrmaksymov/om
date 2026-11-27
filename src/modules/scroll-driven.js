@@ -48,7 +48,7 @@ const MOVES = [
   { at: 0, rows: [[20, 500], [80, 440], [0, 520], [50, 470]] },       // 4 → 5: at the same time, the gaps fill
 ];   // 3 → 4 and 4 → 5 run together, row by row, from the moment the "O" is off the screen
 const WIPE = { duration: 850, ease: 'power2.in' };   // experiment: a white circle grows from the square's centre and covers the stage
-const OM = { at: 0.84, duration: 0.8, stagger: 0.08, ease: 'expo.out' };   // O and M appear when the circle's radius is 70% grown (power2.in: time 0.84), like the site's text reveal
+const OM = { at: 0.7, duration: 0.8, stagger: 0.08, ease: 'expo.out' };   // O and M appear at 70% of the circle's growth, like the site's text reveal
 const OUT = 1190;   // the "O" starts leaving here (as "OH" is complete), at the scroll's own speed
 
 import { circularTextReveal, REVEAL_SCROLL } from './circular-text.js';
