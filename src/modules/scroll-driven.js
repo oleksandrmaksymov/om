@@ -1,11 +1,10 @@
 /* ———— Scroll-driven block (Research) ———— */
 /* An 8 × 4 module grid (module 170 design units). The black line (top-left, half the width — always on screen,
    it continues the image above) slides down into a square, the square's rows slide right into the "OH" figure,
-   then the "O" scrolls away up while the "M" closes up into a square on the right — pinned and scrubbed.
-   Webflow: [data-scroll-driven="wrap"] (no paddings, height = the stage; hidden on mobile). Pinned when its bottom
-            reaches the screen's bottom, so on a screen taller than the grid the free space is at the top, under the nav.
-            → [data-scroll-driven="stage"] (full width; 2:1 unless the screen is too low, then max-height wins and
-            the modules get a little wider than tall).
+   then the "O" scrolls away up and, once it is off the screen, the "M" closes up into a square on the right —
+   pinned and scrubbed.
+   Webflow: [data-scroll-driven="wrap"] (no paddings, 100svh; hidden on mobile) → [data-scroll-driven="stage"]
+            (the whole screen: full width × 100svh — a row is 25% of the height, a column 12.5% of the width).
    Method (GSAP + ScrollTrigger scrub + Lenis, SVG geometry rebuilt every frame):
    - Blocks are module squares that never change size and move only along the grid: down a column, right along
      a row. Each block's position is a plain object {x, y}, tweened by GSAP (GSAP docs: tween any numeric property
@@ -15,7 +14,7 @@
    - Moves ease in and out (sine.inOut); timeline time = design units, and the pin is as long as the timeline in
      screen pixels (ScrollTrigger.create with the timeline as its animation; functional end, re-measured on refresh).
    - viewBox = the Figma frames (1360 × 680): the data is the design's coordinates. preserveAspectRatio="none"
-     maps the grid onto the stage's real box, so on a low screen the modules widen instead of side margins appearing. */
+     maps the grid onto the stage's real box, so the modules take the screen's proportions. */
 
 const M = 170;                          // module, design units
 
@@ -41,9 +40,9 @@ const DOWN = { duration: 510, stagger: 40 };    // 1 → 2: the blocks slide dow
    never pass each other */
 const MOVES = [
   { at: 510, rows: [[60, 560], [0, 620], [110, 520], [30, 600]] },    // 2 → 3: the square slides right into "OH"
-  { at: 1530, rows: [[0, 300], [20, 300], [40, 300], [10, 300]] },    // 3 → 4: the M's first column, one place right
-  { at: 1870, rows: [[20, 500], [80, 440], [0, 520], [50, 470]] },    // 4 → 5: the M fills into the square
-];
+  { at: 0, rows: [[0, 300], [20, 300], [40, 300], [10, 300]] },       // 3 → 4: the M's first column, one place right
+  { at: 340, rows: [[20, 500], [80, 440], [0, 520], [50, 470]] },     // 4 → 5: the M fills into the square
+];   // 3 → 4 and 4 → 5 are timed from the moment the "O" is off the screen
 const OUT = 1190;   // the "O" starts leaving here (as "OH" is complete), at the scroll's own speed
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -103,24 +102,29 @@ export function initScrollDrivenScroll(scope) {
     if (!row) return;
     tl.fromTo(b.blocks[i], { y: 0 }, { y: row * M, duration: DOWN.duration - 3 * DOWN.stagger, ease: EASE, immediateRender: false }, cols[0] * DOWN.stagger);
   });
-  /* the moves along the rows (MOVES): right along its row; a whole row moves together, each row with its own timing */
+  /* the moves along the rows (MOVES): right along its row; a whole row moves together, each row with its own timing.
+     2 → 3 goes on the main timeline; the M's moves (3 → 4 → 5) on their own timeline, placed where the "O" is gone */
+  const closeUp = gsap.timeline();
   MOVES.forEach(function(move, n) {
     BLOCKS.forEach(function([row, cols], i) {
       if (cols.length < n + 2 || cols[n] === cols[n + 1]) return;
       const [delay, duration] = move.rows[row];
-      tl.fromTo(b.blocks[i], { x: cols[n] * M }, { x: cols[n + 1] * M, duration: duration, ease: EASE, immediateRender: false }, move.at + delay);
+      (n ? closeUp : tl).fromTo(b.blocks[i], { x: cols[n] * M }, { x: cols[n + 1] * M, duration: duration, ease: EASE, immediateRender: false }, move.at + delay);
     });
   });
 
   /* the "O" leaves up at the scroll's own speed (ease none, 1 unit of time = 1 unit of distance) until it is past
-     the top of the screen: its distance depends on the free space above the pinned stage, so the tween is made
-     again whenever ScrollTrigger re-measures (refreshInit, GSAP docs), before the pin's end is worked out */
+     the top of the screen; then the M closes up. The distance depends on the space above the pinned stage, so both
+     are placed again whenever ScrollTrigger re-measures (refreshInit, GSAP docs), before the pin's end is worked out */
   let out;
   function makeOut() {
     const box = b.stage.getBoundingClientRect(), sx = box.width / 1360, sy = box.height / 680;   // screen px per unit
     const distance = 4 * M + Math.max(0, window.innerHeight - box.height) / sy + 20;   // grid height + space above
+    const duration = distance * sy / sx;
     if (out) tl.remove(out);
-    out = tl.fromTo(b.lift, { v: 0 }, { v: distance, duration: distance * sy / sx, ease: 'none', immediateRender: false }, OUT);
+    tl.remove(closeUp);
+    out = tl.fromTo(b.lift, { v: 0 }, { v: distance, duration: duration, ease: 'none', immediateRender: false }, OUT);
+    tl.add(closeUp, OUT + duration);
   }
   makeOut();
   ScrollTrigger.addEventListener('refreshInit', makeOut);
@@ -128,7 +132,7 @@ export function initScrollDrivenScroll(scope) {
   const st = ScrollTrigger.create({
     animation: tl,
     trigger: b.wrap,
-    start: 'bottom bottom',   // pinned with its bottom on the screen's bottom: the free space is above (nav)
+    start: 'top top',         // the stage is the whole screen
     end: () => '+=' + tl.duration() * (b.stage.clientWidth / 1360),   // 1 screen px of movement per px of scroll
     pin: true,
     scrub: true,
