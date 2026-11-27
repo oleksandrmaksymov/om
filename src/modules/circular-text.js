@@ -9,6 +9,7 @@
 
 const REVEAL_DURATION = 0.7; // stagger amount per line
 const PIN_DISTANCE = '150%';  // how long the block is held (share of the screen height)
+export const REVEAL_SCROLL = 1.5;  // the same, as screens — for a block that plays the reveal in its own timeline
 
 /* SplitText can't split SVG textPath — split chars into tspans, keep spaces */
 function splitLine(line) {
@@ -54,22 +55,8 @@ export function initCircularText(scope) {
   };
 }
 
-/* Layout stage (after the transition, page in its real position — like Flip):
-   pin + scroll-scrubbed reveal (GSAP docs: create pins when the layout is final) */
-export function initCircularTextScroll(scope) {
-  const state = splits.get(scope);
-  if (!state) return function() {};
-
-  const tl = gsap.timeline({
-    scrollTrigger: {
-      trigger: state.wrap,
-      start: 'top top', // the block is one screen high (100svh) on every screen — pinned with the circle centered, like creativewebmanual
-      end: '+=' + PIN_DISTANCE,
-      pin: true, // the circular-text block itself
-      scrub: true,
-    },
-  });
-
+/* The reveal itself: each line's letters switch on one by one (steps), lines starting at their data-at */
+function buildReveal(state, tl) {
   state.lines.forEach(function(line, i) {
     const chars = state.lineChars[i];
     if (!chars.length) return;
@@ -80,6 +67,32 @@ export function initCircularTextScroll(scope) {
       ease: 'steps(1)',
     }, (parseFloat(line.dataset.at) || 0) * REVEAL_DURATION);
   });
+  return tl;
+}
+
+/* For a block that plays the circular text inside its own pinned timeline (the scroll-driven block, when the
+   circular-text section sits inside it): the reveal as a plain timeline, to be added to that block's timeline */
+export function circularTextReveal(scope, host) {
+  const state = splits.get(scope);
+  return state && host.contains(state.wrap) ? buildReveal(state, gsap.timeline()) : null;
+}
+
+/* Layout stage (after the transition, page in its real position — like Flip):
+   pin + scroll-scrubbed reveal (GSAP docs: create pins when the layout is final).
+   Inside the scroll-driven block it makes no pin of its own: that block's timeline plays the reveal. */
+export function initCircularTextScroll(scope) {
+  const state = splits.get(scope);
+  if (!state || state.wrap.closest('[data-scroll-driven="wrap"]')) return function() {};
+
+  const tl = buildReveal(state, gsap.timeline({
+    scrollTrigger: {
+      trigger: state.wrap,
+      start: 'top top', // the block is one screen high (100svh) on every screen — pinned with the circle centered, like creativewebmanual
+      end: '+=' + PIN_DISTANCE,
+      pin: true, // the circular-text block itself
+      scrub: true,
+    },
+  }));
 
   return function() {
     if (tl.scrollTrigger) tl.scrollTrigger.kill(true);

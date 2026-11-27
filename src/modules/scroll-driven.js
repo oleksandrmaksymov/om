@@ -2,9 +2,13 @@
 /* An 8 × 4 module grid (module 170 design units). The black line (top-left, half the width — always on screen,
    it continues the image above) slides down into a square, the square's rows slide right into the "OH" figure,
    then the "O" scrolls away up and, once it is off the screen, the "M" closes up into a square on the right;
-   then (experiment) a white circle grows from that square's centre until the stage is white — pinned and scrubbed.
+   then (experiment) a white circle grows from that square's centre until the stage is white; inside it the O and M
+   appear and the circular text's rings reveal (its section sits inside this block, centred on the same point) —
+   one pin, one scrubbed timeline.
    Webflow: [data-scroll-driven="wrap"] (no paddings, 100svh; hidden on mobile) → [data-scroll-driven="stage"]
-            (the whole screen: full width × 100svh — a row is 25% of the height, a column 12.5% of the width).
+            (the whole screen: full width × 100svh — a row is 25% of the height, a column 12.5% of the width)
+            + the circular-text section after the stage, combo .circular-text.is--overlay (absolute, inset 0, so it
+            lies over the stage at the same size); its O and M paragraphs carry [data-scroll-driven="om"].
    Method (GSAP + ScrollTrigger scrub + Lenis, SVG geometry rebuilt every frame):
    - Blocks are module squares that never change size and move only along the grid: down a column, right along
      a row. Each block's position is a plain object {x, y}, tweened by GSAP (GSAP docs: tween any numeric property
@@ -44,7 +48,10 @@ const MOVES = [
   { at: 0, rows: [[20, 500], [80, 440], [0, 520], [50, 470]] },       // 4 → 5: at the same time, the gaps fill
 ];   // 3 → 4 and 4 → 5 run together, row by row, from the moment the "O" is off the screen
 const WIPE = { duration: 850, ease: 'power2.in' };   // experiment: a white circle grows from the square's centre and covers the stage
+const OM = { at: 0.84, duration: 0.8, stagger: 0.08, ease: 'expo.out' };   // O and M appear when the circle's radius is 70% grown (power2.in: time 0.84), like the site's text reveal
 const OUT = 1190;   // the "O" starts leaving here (as "OH" is complete), at the scroll's own speed
+
+import { circularTextReveal, REVEAL_SCROLL } from './circular-text.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 const builds = new WeakMap();
@@ -87,13 +94,22 @@ export function initScrollDriven(scope) {
     wipe.style.clipPath = 'circle(' + r.toFixed(1) + 'px at 75% 50%)';
   }
   render();
-  builds.set(scope, { wrap: wrap, stage: stage, blocks: blocks, lift: lift, white: white, render: render });
+  /* O and M of the circular text (when its section sits inside this block): masked lines (SplitText, as the site's
+     text reveal), hidden below their mask until the circle reaches them */
+  const om = Array.from(wrap.querySelectorAll('[data-scroll-driven="om"]')).map(function(el) {
+    return SplitText.create(el, { type: 'lines', mask: 'lines' });
+  });
+  const omLines = om.flatMap(function(split) { return split.lines; });
+  gsap.set(omLines, { yPercent: 110 });
+
+  builds.set(scope, { wrap: wrap, stage: stage, blocks: blocks, lift: lift, white: white, omLines: omLines, render: render });
 
   return function() {
     builds.delete(scope);
-    gsap.killTweensOf(blocks.concat(lift, white));
+    gsap.killTweensOf(blocks.concat(lift, white, omLines));
     svg.remove();
     wipe.remove();
+    om.forEach(function(split) { split.revert(); });
   };
 }
 
@@ -125,7 +141,9 @@ export function initScrollDrivenScroll(scope) {
   /* the "O" leaves up at the scroll's own speed (ease none, 1 unit of time = 1 unit of distance) until it is past
      the top of the screen; then the M closes up. The distance depends on the space above the pinned stage, so both
      are placed again whenever ScrollTrigger re-measures (refreshInit, GSAP docs), before the pin's end is worked out */
-  let out, circle;
+  let out, circle, omCall, st;
+  const omIn = gsap.to(b.omLines, { yPercent: 0, duration: OM.duration, stagger: OM.stagger, ease: OM.ease, paused: true });
+  const rings = circularTextReveal(scope, b.wrap);
   function makeOut() {
     const box = b.stage.getBoundingClientRect(), sx = box.width / 1360, sy = box.height / 680;   // screen px per unit
     const distance = 4 * M + Math.max(0, window.innerHeight - box.height) / sy + 20;   // grid height + space above
@@ -135,12 +153,23 @@ export function initScrollDrivenScroll(scope) {
     out = tl.fromTo(b.lift, { v: 0 }, { v: distance, duration: duration, ease: 'none', immediateRender: false }, OUT);
     tl.add(closeUp, OUT + duration);
     if (circle) tl.remove(circle);
-    circle = tl.fromTo(b.white, { v: 0 }, { v: 1, duration: WIPE.duration, ease: WIPE.ease, immediateRender: false }, OUT + duration + closeUp.duration());
+    const circleAt = OUT + duration + closeUp.duration();
+    circle = tl.fromTo(b.white, { v: 0 }, { v: 1, duration: WIPE.duration, ease: WIPE.ease, immediateRender: false }, circleAt);
+    /* the O and M: a callback on the timeline plays their reveal when the playhead passes it going down and
+       reverses it going back up (ScrollTrigger's direction) */
+    if (omCall) tl.remove(omCall);
+    if (b.omLines.length) omCall = tl.call(function() { st && st.direction < 0 ? omIn.reverse() : omIn.play(); }, null, circleAt + OM.at * WIPE.duration);
+    /* then the circular text's rings, as long in scroll as on their own (REVEAL_SCROLL screens) */
+    if (rings) {
+      tl.remove(rings);
+      rings.duration(REVEAL_SCROLL * window.innerHeight / sx);   // sets its timeScale (GSAP docs)
+      tl.add(rings, circleAt + WIPE.duration);
+    }
   }
   makeOut();
   ScrollTrigger.addEventListener('refreshInit', makeOut);
 
-  const st = ScrollTrigger.create({
+  st = ScrollTrigger.create({
     animation: tl,
     trigger: b.wrap,
     start: 'top top',         // the stage is the whole screen
@@ -153,5 +182,6 @@ export function initScrollDrivenScroll(scope) {
     ScrollTrigger.removeEventListener('refreshInit', makeOut);
     st.kill(true);
     tl.kill();
+    omIn.kill();
   };
 }
