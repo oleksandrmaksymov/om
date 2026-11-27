@@ -40,10 +40,10 @@ const DOWN = { duration: 510, stagger: 40 };    // 1 → 2: the blocks slide dow
    never pass each other */
 const MOVES = [
   { at: 510, rows: [[60, 560], [0, 620], [110, 520], [30, 600]] },    // 2 → 3: the square slides right into "OH"
-  { at: 0, rows: [[0, 300], [20, 300], [40, 300], [10, 300]] },       // 3 → 4: the M's first column, one place right
-  { at: 340, rows: [[20, 500], [80, 440], [0, 520], [50, 470]] },     // 4 → 5: the M fills into the square
-];   // 3 → 4 and 4 → 5 are timed from the moment the "O" is off the screen
-const WIPE = { duration: 680, ease: 'power2.in' };   // experiment: a white circle grows from the square's centre and covers the stage
+  { at: 0, rows: [[20, 500], [80, 440], [0, 520], [50, 470]] },       // 3 → 4: the M's first column, one place right
+  { at: 0, rows: [[20, 500], [80, 440], [0, 520], [50, 470]] },       // 4 → 5: at the same time, the gaps fill
+];   // 3 → 4 and 4 → 5 run together, row by row, from the moment the "O" is off the screen
+const WIPE = { duration: 850, ease: 'power2.in' };   // experiment: a white circle grows from the square's centre and covers the stage
 const OUT = 1190;   // the "O" starts leaving here (as "OH" is complete), at the scroll's own speed
 
 const NS = 'http://www.w3.org/2000/svg';
