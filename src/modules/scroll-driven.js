@@ -1,6 +1,6 @@
 /* ———— Scroll-driven block (Research) ———— */
 /* An 8 × 4 module grid (module 170 design units). The black line (top-left, half the width — always on screen,
-   it continues the image above) slides down into a square, the square's rows slide right into the "OH" figure,
+   it continues the image above) slides down into a square, the square's rows slide right into the "OM" figure,
    then the "O" scrolls away up and, once it is off the screen, the "M" closes up into a square on the right;
    then (experiment) a white circle grows from that square's centre until the stage is white; inside it the O and M
    appear and the circular text's rings reveal (its section sits inside this block, centred on the same point) —
@@ -24,7 +24,7 @@ const M = 170;                          // module, design units
 
 /* Every block is one module square that keeps its size; it slides only along the grid — down a column or right
    along a row — except the "O", which leaves upwards with the scroll.
-   Stages: 0 nothing (the blocks wait above the stage) · 1 line · 2 square left · 3 "OH" · then the "O" scrolls away up while the "M" (the right part) closes up
+   Stages: 0 nothing (the blocks wait above the stage) · 1 line · 2 square left · 3 "OM" · then the "O" scrolls away up while the "M" (the right part) closes up
    (4: its first column moves one place right, under its top block) and fills (5: the square on the right).
    Each block: [row, columns] — at stage 1 every block sits in row 0 of its stage-2 column (stacked under the line)
    and slides down to its row; then it takes the next column of its list at each stage.
@@ -43,7 +43,7 @@ const DOWN = { duration: 680, stagger: 40 };    // 1 → 2: the blocks slide dow
    for every row, in no order, so the rows arrive one by one at random; a row moves as a whole, so its blocks
    never pass each other */
 const MOVES = [
-  { at: 680, rows: [[60, 560], [0, 620], [110, 520], [30, 600]] },    // 2 → 3: the square slides right into "OH"
+  { at: 680, rows: [[60, 560], [0, 620], [110, 520], [30, 600]] },    // 2 → 3: the square slides right into "OM"
 ];
 /* the M closing up (3 → 4: its first column one place right; 4 → 5: the gaps fill), from the moment the "O" is
    off the screen: every block on its own — its own delay and duration, from a seeded random (the same every
@@ -52,7 +52,7 @@ const CLOSE = { delay: [0, 240], duration: [360, 560] };
 const WIPE = { duration: 935, ease: 'sine.in' };   // experiment: a white circle grows from the square's centre and covers the stage
 const OM = { at: 0.6, duration: 170, stagger: 40, ease: 'expo.out' };   // O and M rise at 60% of the circle's growth (the site's text reveal), tied to the scroll
 const RINGS_AFTER = 100;   // the rings start right after the O and M are up (as when the circular text came on its own)
-const OUT = 1360;   // the "O" starts leaving here (as "OH" is complete), at the scroll's own speed
+const OUT = 1360;   // the "O" starts leaving here (as "OM" is complete), at the scroll's own speed
 
 import { circularTextReveal, REVEAL_SCROLL } from './circular-text.js';
 
