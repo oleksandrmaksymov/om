@@ -2,7 +2,8 @@
 /* An 8 × 4 module grid (module 170 design units). The black line (top-left, half the width — always on screen,
    it continues the image above) slides down into a square, the square's rows slide right into the "OH" figure,
    and the rows slide on into a square on the right — while the block is pinned and scrubbed.
-   Webflow: [data-scroll-driven="wrap"] (no paddings, height = the stage; hidden on mobile)
+   Webflow: [data-scroll-driven="wrap"] (no paddings, height = the stage; hidden on mobile). Pinned when its bottom
+            reaches the screen's bottom, so on a screen taller than the grid the free space is at the top, under the nav.
             → [data-scroll-driven="stage"] (full width; 2:1 unless the screen is too low, then max-height wins and
             the modules get a little wider than tall).
    Method (GSAP + ScrollTrigger scrub + Lenis, SVG geometry rebuilt every frame):
@@ -31,7 +32,14 @@ const BLOCKS = [
   [3, [0, 1, 4]], [3, [1, 3, 5]], [3, [2, 5, 6]], [3, [3, 7, 7]],
 ];
 const DOWN = { duration: 510, stagger: 40 };    // 1 → 2: the blocks slide down out of the line, column by column
-const ACROSS = { duration: 680, stagger: 60 };  // 2 → 3 and 3 → 4: each row slides right, top row first
+const ACROSS = 680;                              // 2 → 3 and 3 → 4: each row slides right
+/* each row's own [delay, duration] for the two moves across — a little different for every row, in no order,
+   so the rows arrive one by one at random; a row moves as a whole, so its blocks never pass each other */
+const ROWS = [
+  [[60, 560], [0, 620], [110, 520], [30, 600]],   // 2 → 3
+  [[20, 600], [90, 540], [0, 640], [70, 560]],    // 3 → 4
+];
+const HOLD = 340;                                 // the "OH" stays put for this much scroll before moving on
 
 const NS = 'http://www.w3.org/2000/svg';
 const builds = new WeakMap();
@@ -89,19 +97,21 @@ export function initScrollDrivenScroll(scope) {
     if (!row) return;
     tl.fromTo(b.blocks[i], { y: 0 }, { y: row * M, duration: DOWN.duration - 3 * DOWN.stagger, ease: ease, immediateRender: false }, cols[0] * DOWN.stagger);
   });
-  /* 2 → 3 and 3 → 4: right along its row; a whole row moves together, rows one after another, top first */
+  /* 2 → 3 and 3 → 4: right along its row; a whole row moves together, each row with its own timing (ROWS);
+     between them the "OH" holds (an empty stretch of the timeline) */
   [0, 1].forEach(function(n) {
-    const at = DOWN.duration + n * ACROSS.duration;
+    const at = DOWN.duration + n * (ACROSS + HOLD);
     BLOCKS.forEach(function([row, cols], i) {
       if (cols[n] === cols[n + 1]) return;
-      tl.fromTo(b.blocks[i], { x: cols[n] * M }, { x: cols[n + 1] * M, duration: ACROSS.duration - 3 * ACROSS.stagger, ease: ease, immediateRender: false }, at + row * ACROSS.stagger);
+      const [delay, duration] = ROWS[n][row];
+      tl.fromTo(b.blocks[i], { x: cols[n] * M }, { x: cols[n + 1] * M, duration: duration, ease: ease, immediateRender: false }, at + delay);
     });
   });
 
   const st = ScrollTrigger.create({
     animation: tl,
     trigger: b.wrap,
-    start: 'top top',
+    start: 'bottom bottom',   // pinned with its bottom on the screen's bottom: the free space is above (nav)
     end: () => '+=' + tl.duration() * (b.stage.clientWidth / 1360),   // 1 screen px of movement per px of scroll
     pin: true,
     scrub: true,
