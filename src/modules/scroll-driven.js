@@ -48,7 +48,7 @@ const MOVES = [
   { at: 0, rows: [[20, 500], [80, 440], [0, 520], [50, 470]] },       // 4 → 5: at the same time, the gaps fill
 ];   // 3 → 4 and 4 → 5 run together, row by row, from the moment the "O" is off the screen
 const WIPE = { duration: 935, ease: 'sine.in' };   // experiment: a white circle grows from the square's centre and covers the stage
-const OM = { at: 0.6, duration: 0.8, stagger: 0.08, ease: 'expo.out' };   // O and M appear at 60% of the circle's growth, like the site's text reveal
+const OM = { at: 0.6, duration: 170, stagger: 40, ease: 'expo.out' };   // O and M rise at 60% of the circle's growth (the site's text reveal), tied to the scroll
 const OUT = 1190;   // the "O" starts leaving here (as "OH" is complete), at the scroll's own speed
 
 import { circularTextReveal, REVEAL_SCROLL } from './circular-text.js';
@@ -141,8 +141,7 @@ export function initScrollDrivenScroll(scope) {
   /* the "O" leaves up at the scroll's own speed (ease none, 1 unit of time = 1 unit of distance) until it is past
      the top of the screen; then the M closes up. The distance depends on the space above the pinned stage, so both
      are placed again whenever ScrollTrigger re-measures (refreshInit, GSAP docs), before the pin's end is worked out */
-  let out, circle, omCall, st;
-  const omIn = gsap.to(b.omLines, { yPercent: 0, duration: OM.duration, stagger: OM.stagger, ease: OM.ease, paused: true });
+  let out, circle, omIn, st;
   const rings = circularTextReveal(scope, b.wrap);
   function makeOut() {
     const box = b.stage.getBoundingClientRect(), sx = box.width / 1360, sy = box.height / 680;   // screen px per unit
@@ -155,10 +154,10 @@ export function initScrollDrivenScroll(scope) {
     if (circle) tl.remove(circle);
     const circleAt = OUT + duration + closeUp.duration();
     circle = tl.fromTo(b.white, { v: 0 }, { v: 1, duration: WIPE.duration, ease: WIPE.ease, immediateRender: false }, circleAt);
-    /* the O and M: a callback on the timeline plays their reveal when the playhead passes it going down and
-       reverses it going back up (ScrollTrigger's direction) */
-    if (omCall) tl.remove(omCall);
-    if (b.omLines.length) omCall = tl.call(function() { st && st.direction < 0 ? omIn.reverse() : omIn.play(); }, null, circleAt + OM.at * WIPE.duration);
+    /* the O and M: they rise out of their masks (yPercent 110 → 0) as part of the timeline, tied to the scroll like
+       the circle — so however fast the scroll goes back, they leave with the circle, never after it */
+    if (omIn) tl.remove(omIn);
+    if (b.omLines.length) omIn = tl.fromTo(b.omLines, { yPercent: 110 }, { yPercent: 0, duration: OM.duration, stagger: OM.stagger, ease: OM.ease, immediateRender: false }, circleAt + OM.at * WIPE.duration);
     /* then the circular text's rings, as long in scroll as on their own (REVEAL_SCROLL screens) */
     if (rings) {
       tl.remove(rings);
@@ -182,6 +181,5 @@ export function initScrollDrivenScroll(scope) {
     ScrollTrigger.removeEventListener('refreshInit', makeOut);
     st.kill(true);
     tl.kill();
-    omIn.kill();
   };
 }
