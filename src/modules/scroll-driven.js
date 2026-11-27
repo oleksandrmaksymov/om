@@ -1,46 +1,37 @@
 /* ———— Scroll-driven block (Research) ———— */
-/* An 8 × 4 module grid (module 170 design units). Four squares in a line (top-left, half the width) grow down into
-   a black square, the square stretches to the right into the "OH" figure, and the figure gathers into a square on
-   the right — while the block is pinned and scrubbed.
-   Webflow: [data-scroll-driven="wrap"] (100svh; padding 58px top = 20px under the 38px nav, 20px bottom;
-            hidden on mobile) → [data-scroll-driven="stage"] (full width; 2:1 unless the screen is too low, then
-            max-height wins and the modules get a little wider than tall).
+/* An 8 × 4 module grid (module 170 design units). The black line (top-left, half the width — always on screen,
+   it continues the image above) slides down into a square, the square's rows slide right into the "OH" figure,
+   and the rows slide on into a square on the right — while the block is pinned and scrubbed.
+   Webflow: [data-scroll-driven="wrap"] (no paddings, height = the stage; hidden on mobile)
+            → [data-scroll-driven="stage"] (full width; 2:1 unless the screen is too low, then max-height wins and
+            the modules get a little wider than tall).
    Method (GSAP + ScrollTrigger scrub + Lenis, SVG geometry rebuilt every frame):
-   - The figure is 9 rectangles ("pieces"): one per column of the "OH" figure (column 1 has two: its top and its
-     bottom). Each piece is a plain object {x, y, w, h} in design units, tweened by GSAP from stage to stage
-     (GSAP docs: tween any numeric property of any object); the timeline's onUpdate rebuilds the geometry.
-     Where a stage has fewer shapes than pieces, the spare pieces sit inside a neighbour or have zero width,
-     so they grow out of the shape instead of popping in.
-   - All pieces are ONE <path> (a rectangle subpath each, same winding): overlaps simply fill, and the browser
-     anti-aliases the whole path at once, so touching pieces meet with no hairline seam.
-   - Each stage change is one tween per piece (sine.inOut), the pieces setting off a little after each other from
-     left to right; timeline time = design units, and the pin is as long as the timeline in screen pixels
-     (ScrollTrigger.create with the timeline as its animation; functional end, re-measured on refresh).
-   - viewBox = the Figma frames (1360 × 680): the stage data is the design's coordinates. preserveAspectRatio="none"
-     maps the grid onto the stage's real box, so on a low screen the modules widen instead of side margins appearing.
-   - Entrance: the first line is revealed left to right like the Practice block (highlight-marker: 0.8s expo.out),
-     once the stage top reaches 60% of the screen; scrolling back up hides it again, right to left
-     (toggleActions 'play none none reverse'). */
+   - Blocks are module squares that never change size and move only along the grid: down a column, right along
+     a row. Each block's position is a plain object {x, y}, tweened by GSAP (GSAP docs: tween any numeric property
+     of any object); the timeline's onUpdate rebuilds the geometry.
+   - All blocks are ONE <path> (a square subpath each, same winding): overlapping blocks simply fill, and the
+     browser anti-aliases the whole path at once, so touching blocks meet with no hairline seam.
+   - Moves ease in and out (sine.inOut); timeline time = design units, and the pin is as long as the timeline in
+     screen pixels (ScrollTrigger.create with the timeline as its animation; functional end, re-measured on refresh).
+   - viewBox = the Figma frames (1360 × 680): the data is the design's coordinates. preserveAspectRatio="none"
+     maps the grid onto the stage's real box, so on a low screen the modules widen instead of side margins appearing. */
 
 const M = 170;                          // module, design units
-const ENTER = { duration: 0.8, ease: 'expo.out', start: 'top 60%' };
-const LINE = 4 * M;                     // the first line: four squares, half the width
 
-/* Each piece's rectangle per stage, in modules: [column, row, width, height].
-   Pieces: 0 col 0 · 1 col 1 top · 2 col 1 bottom · 3 col 2 · 4 col 3 · 5 col 4 · 6 col 5 · 7 col 6 · 8 col 7 (in "OH").
-   1 line · 2 square left · 3 "OH" · 4 square right. */
-const STAGES = [
-  [[0,0,1,1],[1,0,1,1],[1,0,1,1],[2,0,1,1],[3,0,1,1],[4,0,0,1],[4,0,0,1],[4,0,0,1],[4,0,0,1]],
-  [[0,0,1,4],[1,0,1,2],[1,2,1,2],[2,0,1,4],[3,0,1,4],[4,0,0,4],[4,0,0,4],[4,0,0,4],[4,0,0,4]],
-  [[0,1,1,2],[1,0,1,1],[1,3,1,1],[2,1,1,2],[3,1,1,3],[4,0,1,1],[5,1,1,3],[6,0,1,1],[7,1,1,3]],
-  [[4,0,1,4],[5,0,1,2],[5,2,1,2],[6,0,1,4],[7,0,1,4],[4,0,1,4],[5,0,1,4],[6,0,1,4],[7,0,1,4]],
+/* Every block is one module square that keeps its size; it only ever slides along the grid — down a column or
+   right along a row. Rows of a stage, as columns: 1 line · 2 square left · 3 "OH" · 4 square right.
+   Each block: [row, [column at 2, column at 3, column at 4]] — at stage 1 every block sits in row 0 of its
+   stage-2 column (the blocks of a column stacked under the line), then slides down to its row.
+   Where a row has fewer places than blocks, blocks share a place (they overlap, the shape is the same);
+   so 18 blocks make 4, 16, 17 and 16 squares. Columns only grow left to right (blocks only move right). */
+const BLOCKS = [
+  [0, [0, 1, 4]], [0, [1, 1, 5]], [0, [2, 4, 6]], [0, [3, 6, 7]],
+  [1, [0, 0, 4]], [1, [1, 2, 5]], [1, [2, 3, 6]], [1, [3, 5, 7]], [1, [3, 7, 7]],
+  [2, [0, 0, 4]], [2, [1, 2, 5]], [2, [2, 3, 6]], [2, [3, 5, 7]], [2, [3, 7, 7]],
+  [3, [0, 1, 4]], [3, [1, 3, 5]], [3, [2, 5, 6]], [3, [3, 7, 7]],
 ];
-const MOVES = [
-  { duration: 510, stagger: 30 },       // 1 → 2: the line grows down into the square
-  { duration: 680, stagger: 30 },       // 2 → 3: the square stretches right into "OH"
-  { duration: 680, stagger: 30 },       // 3 → 4: "OH" gathers into the square on the right
-];
-const box = ([c, r, w, h]) => ({ x: c * M, y: r * M, w: w * M, h: h * M });
+const DOWN = { duration: 510, stagger: 40 };    // 1 → 2: the blocks slide down out of the line, column by column
+const ACROSS = { duration: 680, stagger: 60 };  // 2 → 3 and 3 → 4: each row slides right, top row first
 
 const NS = 'http://www.w3.org/2000/svg';
 const builds = new WeakMap();
@@ -61,28 +52,24 @@ export function initScrollDriven(scope) {
   svg.appendChild(path);
   stage.appendChild(svg);
 
-  /* every piece's rectangle, and how much of the first line is revealed, left to right (entrance) */
-  const pieces = STAGES[0].map(box);
-  const reveal = { v: 0 };
+  /* every block's position (top-left corner), design units; stage 1: the line, always on screen */
+  const blocks = BLOCKS.map(([, cols]) => ({ x: cols[0] * M, y: 0 }));
 
-  /* one path, a rectangle per piece; during the entrance only the revealed part (left of reveal × the line) */
+  /* one path, a module square per block */
   function render() {
-    const edge = reveal.v >= 1 ? Infinity : reveal.v * LINE;
     let d = '';
-    for (let i = 0; i < pieces.length; i++) {
-      const p = pieces[i], right = Math.min(p.x + p.w, edge);
-      if (right - p.x < 0.01 || p.h < 0.01) continue;
-      const x0 = p.x.toFixed(2), x1 = right.toFixed(2);
-      d += 'M' + x0 + ' ' + p.y.toFixed(2) + 'H' + x1 + 'V' + (p.y + p.h).toFixed(2) + 'H' + x0 + 'Z';
+    for (let i = 0; i < blocks.length; i++) {
+      const x0 = blocks[i].x.toFixed(2), y0 = blocks[i].y.toFixed(2);
+      d += 'M' + x0 + ' ' + y0 + 'h' + M + 'v' + M + 'h-' + M + 'Z';
     }
     path.setAttribute('d', d);
   }
   render();
-  builds.set(scope, { wrap: wrap, stage: stage, pieces: pieces, reveal: reveal, render: render });
+  builds.set(scope, { wrap: wrap, stage: stage, blocks: blocks, render: render });
 
   return function() {
     builds.delete(scope);
-    gsap.killTweensOf(pieces.concat(reveal));
+    gsap.killTweensOf(blocks);
     svg.remove();
   };
 }
@@ -93,32 +80,22 @@ export function initScrollDrivenScroll(scope) {
   const b = builds.get(scope);
   if (!b) return function() {};
 
-  /* entrance: the line revealed left to right; hidden again right to left when scrolling back up */
-  const entrance = gsap.to(b.reveal, {
-    v: 1,
-    duration: ENTER.duration,
-    ease: ENTER.ease,
-    paused: true,
-    onUpdate: b.render,
-  });
-  const enterTrigger = ScrollTrigger.create({
-    trigger: b.stage,
-    start: ENTER.start,
-    animation: entrance,
-    toggleActions: 'play none none reverse',
-  });
-
-  /* the timeline: time = design units, one fromTo per piece per stage change (explicit values, immediateRender
-     off, so scrubbing back and forth is exact), then driven by its pinned ScrollTrigger */
+  /* the timeline: time = design units, one fromTo per block per move (explicit values, immediateRender off, so
+     scrubbing back and forth is exact), then driven by its pinned ScrollTrigger */
   const tl = gsap.timeline({ paused: true, onUpdate: b.render });
-  let at = 0;
-  MOVES.forEach(function(move, n) {
-    b.pieces.forEach(function(p, i) {
-      const from = box(STAGES[n][i]), to = box(STAGES[n + 1][i]);
-      const delay = STAGES[n + 1][i][0] * move.stagger;   // left to right
-      tl.fromTo(p, from, { ...to, duration: move.duration - 7 * move.stagger, ease: 'sine.inOut', immediateRender: false }, at + delay);
+  const ease = 'sine.inOut';
+  /* 1 → 2: down its column, from row 0 to its row; columns one after another, left to right */
+  BLOCKS.forEach(function([row, cols], i) {
+    if (!row) return;
+    tl.fromTo(b.blocks[i], { y: 0 }, { y: row * M, duration: DOWN.duration - 3 * DOWN.stagger, ease: ease, immediateRender: false }, cols[0] * DOWN.stagger);
+  });
+  /* 2 → 3 and 3 → 4: right along its row; a whole row moves together, rows one after another, top first */
+  [0, 1].forEach(function(n) {
+    const at = DOWN.duration + n * ACROSS.duration;
+    BLOCKS.forEach(function([row, cols], i) {
+      if (cols[n] === cols[n + 1]) return;
+      tl.fromTo(b.blocks[i], { x: cols[n] * M }, { x: cols[n + 1] * M, duration: ACROSS.duration - 3 * ACROSS.stagger, ease: ease, immediateRender: false }, at + row * ACROSS.stagger);
     });
-    at += move.duration;
   });
 
   const st = ScrollTrigger.create({
@@ -131,8 +108,6 @@ export function initScrollDrivenScroll(scope) {
   });
 
   return function() {
-    enterTrigger.kill();
-    entrance.kill();
     st.kill(true);
     tl.kill();
   };
