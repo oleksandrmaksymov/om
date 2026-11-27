@@ -38,9 +38,8 @@ const BLOCKS = [
   [3, [0, 1]], [3, [1, 3, 4, 4]], [3, [2, 5, 5, 5]], [3, [3, 7, 7, 7]], [3, [2, 5, 5, 6]],
 ];
 const EASE = 'sine.inOut';
-const ENTER = { start: 'top 20%', stagger: 40 };   // 0 → 1: the line slides in from above the stage while the photo
-                                                   // above is still on screen (stage top at 20% of the screen → top)
-const DOWN = { duration: 510, stagger: 40 };    // 1 → 2: the blocks slide down out of the line, column by column (pinned)
+const ENTER = { start: 'top 20%' };             // the timeline starts while the photo above is still on screen
+const DOWN = { duration: 510, stagger: 40 };    // 0 → 2: the columns slide in from above and unfold (after the scroll before the pin)
 /* the moves along the rows: from the start of the move, each row's own [delay, duration] — a little different
    for every row, in no order, so the rows arrive one by one at random; a row moves as a whole, so its blocks
    never pass each other */
@@ -119,85 +118,88 @@ export function initScrollDriven(scope) {
   };
 }
 
-/* Layout stage (after the transition, page in its real position): entrance trigger + pinned scroll timeline
-   (GSAP docs: create pins when the layout is final) */
+/* Layout stage (after the transition, page in its real position): the scroll timeline and its two ScrollTriggers
+   (GSAP docs: create pins when the layout is final). The timeline starts before the pin — while the photo above is
+   still on screen (stage top at ENTER of the screen) — so the columns slide in and unfold in one move, no stop when
+   the pin starts: one ScrollTrigger pins the block (from 'top top'), another scrubs the timeline (from ENTER); both
+   ends are worked out from the same timeline, so they finish together. */
 export function initScrollDrivenScroll(scope) {
   const b = builds.get(scope);
   if (!b) return function() {};
 
-  /* the timeline: time = design units, one fromTo per block per move (explicit values, immediateRender off, so
-     scrubbing back and forth is exact), then driven by its pinned ScrollTrigger */
+  /* the timeline: time = design units (1 unit ≈ 1 px of scroll × the stage's scale), one fromTo per block per move
+     (explicit values, immediateRender off, so scrubbing back and forth is exact) */
   const tl = gsap.timeline({ paused: true, onUpdate: b.render });
-  /* 0 → 1, before the pin: every block slides down from above the stage to row 0 (the line), columns one after
-     another, scrubbed from the moment the stage top is at 20% of the screen until it reaches the top */
-  const enter = gsap.timeline({
-    scrollTrigger: { trigger: b.wrap, start: ENTER.start, end: 'top top', scrub: true },
-    onUpdate: b.render,
-  });
-  BLOCKS.forEach(function([, cols], i) {
-    enter.fromTo(b.blocks[i], { y: -M }, { y: 0, duration: 1, ease: EASE, immediateRender: false }, cols[0] * ENTER.stagger / 170);
-  });
-
-  /* 1 → 2: down its column, from row 0 to its row; columns one after another, left to right */
-  BLOCKS.forEach(function([row, cols], i) {
-    if (!row) return;
-    tl.fromTo(b.blocks[i], { y: 0 }, { y: row * M, duration: DOWN.duration - 3 * DOWN.stagger, ease: EASE, immediateRender: false }, cols[0] * DOWN.stagger);
-  });
-  /* the moves along the rows (MOVES): right along its row; a whole row moves together, each row with its own timing.
-     2 → 3 goes on the main timeline; the M's moves (3 → 4 → 5) on their own timeline, placed where the "O" is gone */
-  const closeUp = gsap.timeline();
-  MOVES.forEach(function(move, n) {
-    BLOCKS.forEach(function([row, cols], i) {
-      if (cols.length < n + 2 || cols[n] === cols[n + 1]) return;
-      const [delay, duration] = move.rows[row];
-      (n ? closeUp : tl).fromTo(b.blocks[i], { x: cols[n] * M }, { x: cols[n + 1] * M, duration: duration, ease: EASE, immediateRender: false }, move.at + delay);
-    });
-  });
-
-  /* the "O" leaves up at the scroll's own speed (ease none, 1 unit of time = 1 unit of distance) until it is past
-     the top of the screen; then the M closes up. The distance depends on the space above the pinned stage, so both
-     are placed again whenever ScrollTrigger re-measures (refreshInit, GSAP docs), before the pin's end is worked out */
-  let out, circle, omIn, st;
   const rings = circularTextReveal(scope, b.wrap);
-  function makeOut() {
-    const box = b.stage.getBoundingClientRect(), sx = box.width / 1360, sy = box.height / 680;   // screen px per unit
+  let pre = 0, sx = 1;   // pre: the scroll before the pin, in units
+
+  /* (re)built whenever ScrollTrigger re-measures (refreshInit, GSAP docs): several lengths depend on the screen */
+  function build() {
+    const box = b.stage.getBoundingClientRect();
+    sx = box.width / 1360;
+    const sy = box.height / 680;   // screen px per unit
+    pre = parseFloat(ENTER.start.split(' ')[1]) / 100 * window.innerHeight / sx;   // 'top 20%' → 20% of the screen
+    tl.clear();
+
+    /* 0 → 2: each column slides in from above the stage and unfolds down to its rows — one move per block,
+       columns one after another, left to right */
+    BLOCKS.forEach(function([row, cols], i) {
+      tl.fromTo(b.blocks[i], { y: -M }, { y: row * M, duration: pre + DOWN.duration - 3 * DOWN.stagger, ease: EASE, immediateRender: false }, cols[0] * DOWN.stagger);
+    });
+
+    /* the moves along the rows (MOVES): right along its row; a whole row moves together, each row with its own
+       timing. 2 → 3 here; the M's moves (3 → 4 → 5) on their own timeline, placed where the "O" is gone */
+    const closeUp = gsap.timeline();
+    MOVES.forEach(function(move, n) {
+      BLOCKS.forEach(function([row, cols], i) {
+        if (cols.length < n + 2 || cols[n] === cols[n + 1]) return;
+        const [delay, duration] = move.rows[row];
+        (n ? closeUp : tl).fromTo(b.blocks[i], { x: cols[n] * M }, { x: cols[n + 1] * M, duration: duration, ease: EASE, immediateRender: false }, (n ? 0 : pre) + move.at + delay);
+      });
+    });
+
+    /* the "O" leaves up at the scroll's own speed (ease none, 1 unit of time = 1 unit of distance) until it is past
+       the top of the screen; then the M closes up */
     const distance = 4 * M + Math.max(0, window.innerHeight - box.height) / sy + 20;   // grid height + space above
-    const duration = distance * sy / sx;
-    if (out) tl.remove(out);
-    tl.remove(closeUp);
-    out = tl.fromTo(b.lift, { v: 0 }, { v: distance, duration: duration, ease: 'none', immediateRender: false }, OUT);
-    tl.add(closeUp, OUT + duration);
-    if (circle) tl.remove(circle);
-    const circleAt = OUT + duration + closeUp.duration();
-    circle = tl.fromTo(b.white, { v: 0 }, { v: 1, duration: WIPE.duration, ease: WIPE.ease, immediateRender: false }, circleAt);
-    /* the O and M: they rise out of their masks (yPercent 110 → 0) as part of the timeline, tied to the scroll like
-       the circle — so however fast the scroll goes back, they leave with the circle, never after it */
-    if (omIn) tl.remove(omIn);
-    if (b.omLines.length) omIn = tl.fromTo(b.omLines, { yPercent: 110 }, { yPercent: 0, duration: OM.duration, stagger: OM.stagger, ease: OM.ease, immediateRender: false }, circleAt + OM.at * WIPE.duration);
+    const outFor = distance * sy / sx;
+    tl.fromTo(b.lift, { v: 0 }, { v: distance, duration: outFor, ease: 'none', immediateRender: false }, pre + OUT);
+    tl.add(closeUp, pre + OUT + outFor);
+
+    /* the white circle, then the O and M rise out of their masks (yPercent 110 → 0), tied to the scroll like the
+       circle — however fast the scroll goes back, they leave with it */
+    const circleAt = pre + OUT + outFor + closeUp.duration();
+    tl.fromTo(b.white, { v: 0 }, { v: 1, duration: WIPE.duration, ease: WIPE.ease, immediateRender: false }, circleAt);
+    if (b.omLines.length) tl.fromTo(b.omLines, { yPercent: 110 }, { yPercent: 0, duration: OM.duration, stagger: OM.stagger, ease: OM.ease, immediateRender: false }, circleAt + OM.at * WIPE.duration);
+
     /* then the circular text's rings, as long in scroll as on their own (REVEAL_SCROLL screens) */
     if (rings) {
-      tl.remove(rings);
       rings.duration(REVEAL_SCROLL * window.innerHeight / sx);   // sets its timeScale (GSAP docs)
       tl.add(rings, circleAt + OM.at * WIPE.duration + RINGS_AFTER);
     }
   }
-  makeOut();
-  ScrollTrigger.addEventListener('refreshInit', makeOut);
+  build();
+  ScrollTrigger.addEventListener('refreshInit', build);
 
-  st = ScrollTrigger.create({
-    animation: tl,
+  /* the pin: from the stage at the top of the screen to the timeline's end */
+  const pin = ScrollTrigger.create({
     trigger: b.wrap,
     start: 'top top',         // the stage is the whole screen
-    end: () => '+=' + tl.duration() * (b.stage.clientWidth / 1360),   // 1 screen px of movement per px of scroll
+    end: () => '+=' + (tl.duration() - pre) * sx,
     pin: true,
+  });
+  /* the scrub: from the stage top at ENTER of the screen (before the pin) to the same end */
+  const st = ScrollTrigger.create({
+    animation: tl,
+    trigger: b.wrap,
+    start: ENTER.start,
+    end: () => '+=' + tl.duration() * sx,   // 1 screen px of movement per px of scroll
     scrub: true,
   });
 
   return function() {
-    ScrollTrigger.removeEventListener('refreshInit', makeOut);
-    st.kill(true);
+    ScrollTrigger.removeEventListener('refreshInit', build);
+    st.kill();
+    pin.kill(true);
     tl.kill();
-    if (enter.scrollTrigger) enter.scrollTrigger.kill();
-    enter.kill();
   };
 }
